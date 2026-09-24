@@ -27,7 +27,8 @@ flowchart LR
     Channels[Slack / E-mail / Webhook] --> N8N[n8n]
     N8N --> API[FastAPI]
     API --> PG[(PostgreSQL)]
-    API --> Supervisor[Supervisor LangGraph]
+    PG --> Worker[Worker]
+    Worker --> Supervisor[Supervisor LangGraph]
     Supervisor --> RAG[RAG Agent]
     Supervisor --> Tools[Tools Agent]
     RAG --> Qdrant[(Qdrant)]
@@ -50,7 +51,7 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Fiabilité | Persistance transactionnelle, idempotence et audit de réception | Implémenté |
 | Observabilité | Logs JSON, correlation IDs, contrôles de santé | Implémenté |
 | Développement | Docker Compose, migrations, tests et workflow GitHub Actions | Implémenté |
-| Traitement | Worker, retries et reprise des travaux interrompus | Prévu |
+| Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, processeur démo |
 | Orchestration | Supervisor LangGraph, RAG Agent et Tools Agent | Prévu |
 | Recherche | Ingestion, embeddings, recherche Qdrant et citations | Prévu |
 | Actions | Outils CRM/facturation/tickets et approbations humaines | Prévu |
@@ -58,8 +59,9 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Intégrations | n8n, Slack, e-mail et API métier réelles | Prévu |
 | Évaluation | LangSmith, latence/tokens/coût, évaluation RAG et E2E métier | Prévu |
 
-Les événements acceptés sont actuellement conservés en attente dans PostgreSQL.
-Leur réception ne déclenche pas encore d’agent ni d’action métier.
+Le worker exécute actuellement un processeur de démonstration et conserve son résultat
+dans PostgreSQL. Ce résultat confirme le fonctionnement du traitement asynchrone ;
+il ne répond pas encore à la demande métier et n'exécute aucune action externe.
 
 ## Stack technique
 
@@ -75,7 +77,7 @@ Prérequis : Docker avec Docker Compose. Depuis la racine du dépôt :
 docker compose up --build --wait
 ```
 
-Compose démarre PostgreSQL et Qdrant, applique les migrations puis lance l’API.
+Compose démarre PostgreSQL et Qdrant, applique les migrations puis lance l’API et le worker.
 
 - Documentation interactive : [localhost:8000/docs](http://localhost:8000/docs)
 - Disponibilité des dépendances : [localhost:8000/health/ready](http://localhost:8000/health/ready)
@@ -96,7 +98,8 @@ la configuration, l’envoi d’un webhook signé et l’exécution des tests.
 ## Qualité et sécurité
 
 Les tests couvrent l’authentification des webhooks, les entrées invalides,
-l’isolation des identités, l’idempotence concurrente et les transactions PostgreSQL.
+l’isolation des identités, l’idempotence concurrente et les transactions PostgreSQL,
+ainsi que les reprises après expiration, les retries et le rejet des résultats obsolètes.
 Le workflow CI inclut les contrôles de code, les tests et une vérification HTTP
 sur la stack conteneurisée.
 
@@ -114,6 +117,7 @@ versionnés. Aucun score de performance non mesuré n’est présenté comme ré
 - [Contrat du MVP et critères d’acceptation](docs/mvp.md)
 - [Architecture et responsabilités](docs/adr/0001-mvp.md)
 - [Réception durable : garanties et limites](docs/adr/0002-durable-ingress.md)
+- [Worker : réservations, retries et reprise](docs/adr/0003-worker.md)
 
 ## Organisation du dépôt
 

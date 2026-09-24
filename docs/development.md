@@ -25,6 +25,18 @@ Pour un `.env` préexistant, ajouter `ASSISTOPS_WEBHOOK_CONNECTORS` depuis l'exe
 pour activer la réception locale. Ne pas remplacer les autres variables ou secrets.
 Documentation locale : <http://localhost:8000/docs>.
 
+Dans un second terminal, lancer le worker de démonstration :
+
+```powershell
+$env:ASSISTOPS_WORKER_PROCESSOR = 'demo'
+.\.venv\Scripts\python.exe -m assistops.worker
+```
+
+Le mode par défaut est `disabled`. Le mode `demo` est interdit avec
+`ASSISTOPS_ENVIRONMENT=production`. Le Compose active explicitement `demo`.
+L'arrêt par Ctrl+C/SIGTERM termine le travail courant puis arrête les prises de
+travaux. Une interruption brutale laisse une réservation récupérable après expiration.
+
 ```powershell
 Invoke-RestMethod http://localhost:8000/health/live
 Invoke-RestMethod http://localhost:8000/health/ready
@@ -57,10 +69,11 @@ docker compose config --quiet
 Pour vérifier le webhook dans Docker (identité publique locale de démonstration) :
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/send_demo_event.py
+.\.venv\Scripts\python.exe scripts/send_demo_event.py --wait
 ```
 
 Le script envoie deux fois un nouvel événement et vérifie que le reçu est identique.
+Avec `--wait`, il attend aussi le résultat du worker (30 secondes maximum).
 Les réponses `202` portent `receipt_id`, `event_id`, `status: received` et `duplicate`.
 Erreurs : `401` signature absente/invalide/expirée, `403` identité non autorisée,
 `408` délai de lecture du corps dépassé,
@@ -76,6 +89,33 @@ Placer le résultat dans `X-AssistOps-Signature` et envoyer le corps exact sign�
 avec `Content-Type: application/json`. L'enveloppe est décrite dans le
 [contrat du MVP](mvp.md) et la documentation interactive `/docs`.
 
+## Consulter le traitement
+
+`POST /v1/events/status` utilise les mêmes headers HMAC, calculés sur ce corps :
+
+```json
+{
+  "receipt_id": "00000000-0000-0000-0000-000000000000",
+  "tenant_id": "demo",
+  "user_id": "user-001",
+  "source": "webhook"
+}
+```
+
+Remplacer `receipt_id` par le reçu de l'envoi initial. La réponse expose `status`
+(`pending`, `processing`, `completed`, `failed`), `attempts`, `result` et `last_error`.
+Un reçu absent ou appartenant à un autre utilisateur/connecteur retourne `404`.
+Le statut `completed` signifie ici que le **processeur de démonstration** a terminé,
+pas qu'une opération métier a eu lieu. Il produit `business_action_executed: false`.
+Les événements déjà terminés en démonstration ne seront pas rejoués automatiquement
+lors du branchement des agents ; envoyer de nouveaux événements pour les tester.
+
+Valeurs par défaut : polling 1 s, traitement 20 s maximum, réservation 60 s,
+3 tentatives, backoff initial 2 s puis exponentiel (plafond 60 s). Voir les variables
+`ASSISTOPS_WORKER_*` dans `.env.example`. La réservation doit dépasser le timeout
+d'au moins 15 s. Les erreurs retournées sont des codes filtrés, pas les exceptions brutes.
+La readiness de l'API contrôle les dépendances et le schéma, pas la disponibilité du worker.
+
 Tests PostgreSQL réels, dans des schémas temporaires isolés supprimés après chaque test :
 
 ```powershell
@@ -85,7 +125,7 @@ $env:ASSISTOPS_TEST_DATABASE_URL = 'postgresql://assistops:assistops-local-only@
 
 Les tests unitaires simulent les dépendances externes. Les tests d'intégration
 vérifient concurrence, rollback et persistance sur PostgreSQL. La CI démarre Compose,
-exécute ces tests et vérifie un webhook signé et son doublon par HTTP.
+exécute ces tests et vérifie un webhook signé, son doublon et le résultat du worker par HTTP.
 La suite E2E métier reste à implémenter.
 Les dépendances directes sont fixées ; le verrouillage transitif reste à ajouter.
 

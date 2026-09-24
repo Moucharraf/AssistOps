@@ -24,8 +24,8 @@ jobs:
         env:
           ASSISTOPS_TEST_DATABASE_URL: postgresql://assistops:assistops-local-only@localhost:5432/assistops
         run: pytest -m integration
-      - name: Signed webhook and replay over HTTP
-        run: python scripts/send_demo_event.py
+      - name: Signed webhook, replay and demo worker over HTTP
+        run: python scripts/send_demo_event.py --wait
       - name: Container logs
         if: failure()
         run: docker compose logs

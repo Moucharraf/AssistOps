@@ -19,14 +19,17 @@ Identifier = Annotated[str, Field(min_length=1, max_length=128, pattern=r"^[A-Za
 MAX_BODY_BYTES = 64 * 1024
 
 
-class EventInput(BaseModel):
+class ScopedInput(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    event_id: Identifier
     tenant_id: Identifier
     user_id: Identifier
-    conversation_id: Identifier
     source: Literal["webhook", "slack", "email"]
+
+
+class EventInput(ScopedInput):
+    event_id: Identifier
+    conversation_id: Identifier
     message: str = Field(min_length=1, max_length=16000)
 
     @field_validator("message")
@@ -45,6 +48,20 @@ class Receipt(BaseModel):
     event_id: str
     status: Literal["received"] = "received"
     duplicate: bool
+
+
+class StatusQuery(ScopedInput):
+    receipt_id: str = Field(
+        pattern=r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+    )
+
+
+class JobStatus(BaseModel):
+    receipt_id: UUID
+    status: Literal["pending", "processing", "completed", "failed"]
+    attempts: int
+    result: dict | None
+    last_error: str | None
 
 
 class EventError(Exception):
@@ -94,6 +111,45 @@ def unique_object(pairs):
     },
 )
 async def receive_event(request: Request) -> Receipt:
+    event, connector_id = await authenticated_input(request, EventInput)
+    try:
+        return await run_in_threadpool(
+            request.app.state.event_store.accept, event, connector_id, request.state.correlation_id
+        )
+    except psycopg.Error as exc:
+        logger.warning("event_storage_unavailable", error_type=type(exc).__name__)
+        raise EventError(503, "storage_unavailable") from exc
+
+
+@router.post(
+    "/v1/events/status",
+    response_model=JobStatus,
+    tags=["events"],
+    summary="Read job status using a signed, identity-scoped query",
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {"application/json": {"schema": StatusQuery.model_json_schema()}},
+        },
+        "parameters": [
+            {"name": name, "in": "header", "required": True, "schema": {"type": "string"}}
+            for name in ("X-AssistOps-Connector", "X-AssistOps-Timestamp", "X-AssistOps-Signature")
+        ],
+    },
+)
+async def event_status(request: Request) -> JobStatus:
+    query, connector_id = await authenticated_input(request, StatusQuery)
+    try:
+        result = await run_in_threadpool(request.app.state.event_store.status, query, connector_id)
+    except psycopg.Error as exc:
+        logger.warning("event_storage_unavailable", error_type=type(exc).__name__)
+        raise EventError(503, "storage_unavailable") from exc
+    if result is None:
+        raise EventError(404, "event_not_found")
+    return result
+
+
+async def authenticated_input(request: Request, schema):
     settings = request.app.state.settings
     if not settings.webhook_connectors:
         raise EventError(503, "webhooks_not_configured")
@@ -129,7 +185,7 @@ async def receive_event(request: Request) -> Receipt:
     )
     try:
         data = json.loads(body.decode("utf-8"), object_pairs_hook=unique_object)
-        event = EventInput.model_validate(data)
+        event = schema.model_validate(data)
     except (ValueError, ValidationError, RecursionError) as exc:
         raise EventError(422, "invalid_event") from exc
     if (
@@ -138,10 +194,4 @@ async def receive_event(request: Request) -> Receipt:
         or event.user_id not in connector.allowed_user_ids
     ):
         raise EventError(403, "identity_not_allowed")
-    try:
-        return await run_in_threadpool(
-            request.app.state.event_store.accept, event, connector_id, request.state.correlation_id
-        )
-    except psycopg.Error as exc:
-        logger.warning("event_storage_unavailable", error_type=type(exc).__name__)
-        raise EventError(503, "storage_unavailable") from exc
+    return event, connector_id

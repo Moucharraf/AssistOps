@@ -34,7 +34,9 @@ constant, horodatage accepté à ±300 secondes, corps limité à 64 Kio.
 Une réponse `202` signifie que l'événement, le travail en attente et l'audit sont
 persistés transactionnellement. Une contrainte unique `(tenant_id, source, event_id)`
 empêche les doublons ; réutiliser un identifiant avec un contenu différent retourne `409`.
-Le reçu est stable après redémarrage. Aucun worker ne traite encore les événements.
+Le reçu est stable après redémarrage. Un worker exécute désormais un traitement
+de démonstration sans action métier. Le statut et son résultat sont accessibles via
+`POST /v1/events/status`, avec une requête signée et limitée à l'identité d'origine.
 
 ## Agents et approbation
 
@@ -73,7 +75,9 @@ Les tests HMAC, concurrence, retries, timeouts et limites s'y ajouteront.
 
 1. **Socle livré** : configuration, API, santé, logs, Docker et CI.
 2. **Réception durable livrée** : migrations, événements, HMAC, idempotence et audit.
-   Le worker et la reprise du traitement restent à implémenter.
+   Le worker, les retries, la reprise par expiration de réservation et le statut
+   authentifié sont livrés avec un processeur de démonstration. Les reprises des
+   étapes internes LangGraph restent à implémenter avec les agents.
 3. **RAG** : corpus synthétique, ingestion, embeddings, Qdrant et citations.
 4. **Agents et métier** : LangGraph, outils simulés et approbations persistées.
 5. **Intégration** : n8n, connecteurs réels, LangSmith, limites et E2E.

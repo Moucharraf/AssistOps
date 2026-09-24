@@ -6,7 +6,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from assistops.config import Settings
-from assistops.events import EventError, EventInput, Receipt
+from assistops.events import EventError, EventInput, JobStatus, Receipt, StatusQuery
 
 
 def connect(settings: Settings):
@@ -27,6 +27,21 @@ def connect(settings: Settings):
 class EventStore:
     def __init__(self, settings: Settings):
         self.settings = settings
+
+    def status(self, query: StatusQuery, connector_id: str) -> JobStatus | None:
+        with connect(self.settings) as connection:
+            row = connection.execute(
+                """SELECT j.event_id, j.status, j.attempts, j.result, j.last_error
+                   FROM event_jobs j JOIN inbound_events e ON e.id = j.event_id
+                   WHERE e.id = %s AND e.tenant_id = %s AND e.source = %s
+                     AND e.payload->>'user_id' = %s AND e.connector_id = %s""",
+                (query.receipt_id, query.tenant_id, query.source, query.user_id, connector_id),
+            ).fetchone()
+        if row is None:
+            return None
+        return JobStatus(
+            receipt_id=row[0], status=row[1], attempts=row[2], result=row[3], last_error=row[4]
+        )
 
     def accept(self, event: EventInput, connector_id: str, correlation_id: str) -> Receipt:
         payload = event.model_dump()
