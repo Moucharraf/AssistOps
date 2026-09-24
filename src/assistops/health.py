@@ -16,7 +16,7 @@ async def check_postgres(settings: Settings) -> None:
         ) as connection,
         connection.cursor() as cursor,
     ):
-        await cursor.execute("SELECT 1")
+        await cursor.execute("SELECT version FROM schema_migrations WHERE version = 1")
         if await cursor.fetchone() != (1,):
             raise RuntimeError("Unexpected database health response")
 

@@ -10,8 +10,10 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from assistops.config import Settings
+from assistops.events import EventError, router
 from assistops.health import dependency_status
 from assistops.observability import configure_logging
+from assistops.storage import EventStore
 
 logger = structlog.get_logger()
 CORRELATION_ID = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
@@ -30,13 +32,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="AssistOps",
         version="0.1.0",
-        description="Socle du MVP. Les routes métier seront ajoutées au prochain jalon.",
+        description="Réception durable et authentifiée des événements du MVP.",
         lifespan=lifespan,
         docs_url="/docs" if settings.environment != "production" else None,
         redoc_url=None,
         openapi_url="/openapi.json" if settings.environment != "production" else None,
     )
     app.state.settings = settings
+    app.state.event_store = EventStore(settings)
+    app.include_router(router)
 
     def error(request: Request, status: int, code: str) -> JSONResponse:
         return JSONResponse(
@@ -69,6 +73,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return response
         finally:
             structlog.contextvars.reset_contextvars(**tokens)
+
+    @app.exception_handler(EventError)
+    async def event_error(request: Request, exc: EventError):
+        return error(request, exc.status, exc.code)
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):

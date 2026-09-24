@@ -24,7 +24,9 @@ def test_postgres_runs_a_real_query(settings, monkeypatch):
     connect = AsyncMock(return_value=connection)
     monkeypatch.setattr("assistops.health.psycopg.AsyncConnection.connect", connect)
     asyncio.run(check_postgres(settings))
-    cursor.execute.assert_awaited_once_with("SELECT 1")
+    cursor.execute.assert_awaited_once_with(
+        "SELECT version FROM schema_migrations WHERE version = 1"
+    )
 
 
 def test_qdrant_checks_readyz(settings, monkeypatch):

@@ -1,4 +1,4 @@
-# Contrat du MVP — interfaces métier à implémenter
+# Contrat du MVP — réception livrée, traitement métier à implémenter
 
 ## Premier parcours
 
@@ -7,7 +7,7 @@ interne, consulte une facture autorisée et propose un ticket. Un approbateur ha
 confirme ou refuse. Une confirmation produit un seul ticket, même après un doublon
 de webhook ou une reprise après incident. Les API métier seront d'abord simulées.
 
-## Entrée cible (pas encore exposée)
+## Entrée implémentée
 
 `POST /v1/events`, enveloppe JSON stricte :
 
@@ -26,14 +26,15 @@ Le tenant et l'identité seront vérifiés auprès du connecteur authentifié. U
 dans le JSON ou suggérée par le modèle ne suffit pas. Une conversation reste associée
 à un tenant et à ses participants autorisés ; son identifiant ne donne aucun droit.
 
-Headers cibles : `X-AssistOps-Timestamp`, `X-AssistOps-Signature`,
+Headers : `X-AssistOps-Connector`, `X-AssistOps-Timestamp`, `X-AssistOps-Signature`,
 `X-Correlation-ID` optionnel. Signature : `v1=` suivi du HMAC-SHA256 hexadécimal
 de `timestamp + "." + corps brut`, avec secret par connecteur. Comparaison en temps
 constant, horodatage accepté à ±300 secondes, corps limité à 64 Kio.
 
-Une réponse `202` signifiera que l'événement et le travail à effectuer sont persistés
-transactionnellement. Une contrainte unique `(tenant_id, source, event_id)` empêchera
-les doublons ; réutiliser un identifiant avec un contenu différent retournera `409`.
+Une réponse `202` signifie que l'événement, le travail en attente et l'audit sont
+persistés transactionnellement. Une contrainte unique `(tenant_id, source, event_id)`
+empêche les doublons ; réutiliser un identifiant avec un contenu différent retourne `409`.
+Le reçu est stable après redémarrage. Aucun worker ne traite encore les événements.
 
 ## Agents et approbation
 
@@ -71,7 +72,8 @@ Les tests HMAC, concurrence, retries, timeouts et limites s'y ajouteront.
 ## Jalons
 
 1. **Socle livré** : configuration, API, santé, logs, Docker et CI.
-2. **Réception durable** : migrations, événements, HMAC, idempotence, audit et reprise.
+2. **Réception durable livrée** : migrations, événements, HMAC, idempotence et audit.
+   Le worker et la reprise du traitement restent à implémenter.
 3. **RAG** : corpus synthétique, ingestion, embeddings, Qdrant et citations.
 4. **Agents et métier** : LangGraph, outils simulés et approbations persistées.
 5. **Intégration** : n8n, connecteurs réels, LangSmith, limites et E2E.

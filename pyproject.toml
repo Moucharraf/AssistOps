@@ -23,10 +23,14 @@ dev = ["pytest==9.0.3", "ruff==0.15.12"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+assistops = ["migrations/*.sql"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
 addopts = "-ra"
+markers = ["integration: requires ASSISTOPS_TEST_DATABASE_URL and a real PostgreSQL server"]
 
 [tool.ruff]
 target-version = "py312"
