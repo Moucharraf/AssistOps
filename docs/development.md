@@ -129,7 +129,22 @@ exécute ces tests et vérifie un webhook signé, son doublon et le résultat du
 La suite E2E métier reste à implémenter.
 Les dépendances directes sont fixées ; le verrouillage transitif reste à ajouter.
 
-## Structure
+## Corpus synthétique et évaluation documentaire
+
+Le [guide dédié](synthetic-corpus.md) explique les documents, leur origine entièrement
+synthétique et la distinction entre tests du calcul de métrique et performance RAG.
+Depuis la racine, sans services externes :
+
+```powershell
+.\.venv\Scripts\python.exe -m assistops.corpus
+.\.venv\Scripts\python.exe -m pytest tests/test_corpus.py tests/test_retrieval_eval.py -q
+```
+
+La validation est également exécutée en CI. Elle vérifie notamment les références
+de preuve, les droits des sources attendues et la séparation de l'évaluation.
+L'ingestion Qdrant, les embeddings et la recherche réelle restent à implémenter.
+
+## Structure du dépôt
 
 ```text
 src/assistops/     API, configuration, santé et observabilité

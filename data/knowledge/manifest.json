@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "corpus_id": "asterdesk-fr-v1",
+  "origin": "synthetic",
+  "language": "fr",
+  "snapshot_date": "2026-09-01",
+  "external_content_included": false,
+  "documents": [
+    "documents/current/billing-cycle.v1.md",
+    "documents/current/billing-disputes.v2.md",
+    "documents/current/refund-policy.v1.md",
+    "documents/current/refund-approvals.v1.md",
+    "documents/current/payment-failures.v1.md",
+    "documents/current/subscription-changes.v1.md",
+    "documents/current/plans.v1.md",
+    "documents/current/ticket-creation.v1.md",
+    "documents/current/support-priorities.v2.md",
+    "documents/current/support-escalation.v1.md",
+    "documents/current/identity-verification.v1.md",
+    "documents/current/invoice-access.v1.md",
+    "documents/current/password-reset.v1.md",
+    "documents/current/onboarding.v1.md",
+    "documents/current/offboarding.v1.md",
+    "documents/current/data-export.v1.md",
+    "documents/current/retention.v1.md",
+    "documents/current/incident-communication.v1.md",
+    "documents/current/integration-webhooks.v1.md",
+    "documents/current/service-cancellation.v1.md",
+    "documents/archive/billing-disputes.v1.md",
+    "documents/archive/support-priorities.v1.md",
+    "documents/other-tenant/secondary-billing-disputes.v1.md"
+  ]
+}

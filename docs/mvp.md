@@ -78,14 +78,17 @@ Les tests HMAC, concurrence, retries, timeouts et limites s'y ajouteront.
    Le worker, les retries, la reprise par expiration de réservation et le statut
    authentifié sont livrés avec un processeur de démonstration. Les reprises des
    étapes internes LangGraph restent à implémenter avec les agents.
-3. **RAG** : corpus synthétique, ingestion, embeddings, Qdrant et citations.
+3. **RAG** : corpus synthétique et benchmark de référence livrés et documentés.
+   Ingestion, embeddings, recherche Qdrant et citations dans les réponses restent à implémenter.
 4. **Agents et métier** : LangGraph, outils simulés et approbations persistées.
 5. **Intégration** : n8n, connecteurs réels, LangSmith, limites et E2E.
 
-Les clés OpenAI et le choix du modèle seront nécessaires au jalon RAG. Le corpus
-initial ne contiendra pas de données personnelles réelles. Un jeu versionné de
-20 questions avec documents pertinents attendus permettra de mesurer le Recall@5
-moyen : documents pertinents dans les cinq premiers résultats divisés par le nombre
-de documents pertinents attendus, puis moyenne des questions. Avec une seule référence
-par question, les résultats avancent par pas de 5 points : 83 % n'est pas possible
-dans cette configuration. Latence, tokens et coût seront mesurés sur les appels réels.
+Les clés OpenAI et le choix du modèle seront nécessaires pour les embeddings et
+les réponses générées. Le corpus actuel est entièrement synthétique, sans contenu
+externe importé. Le jeu versionné contient 20 questions : 16 avec sources attendues,
+2 sans réponse disponible et 2 demandes à refuser. Le Recall@5 documentaire est
+calculé sur les 16 premières ; quatre d'entre elles nécessitent deux documents.
+Les cas d'abstention et de refus sont évalués séparément, sans score de recall fictif.
+Voir le [guide du corpus](synthetic-corpus.md) pour la formule et les limites.
+Latence, tokens et coût seront mesurés sur les appels réels ; aucun résultat RAG
+n'a encore été mesuré.

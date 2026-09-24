@@ -53,6 +53,7 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Développement | Docker Compose, migrations, tests et workflow GitHub Actions | Implémenté |
 | Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, processeur démo |
 | Orchestration | Supervisor LangGraph, RAG Agent et Tools Agent | Prévu |
+| Connaissances | Corpus synthétique réaliste, provenance et questions de référence | Disponible |
 | Recherche | Ingestion, embeddings, recherche Qdrant et citations | Prévu |
 | Actions | Outils CRM/facturation/tickets et approbations humaines | Prévu |
 | Mémoire | Conversations persistées entre sessions | Prévu |
@@ -111,9 +112,17 @@ contrôles métier complémentaires font partie des travaux de préparation à l
 Les objectifs de Recall@5 et les scénarios E2E métier seront évalués sur des jeux
 versionnés. Aucun score de performance non mesuré n’est présenté comme résultat acquis.
 
+Le corpus de démonstration est **100 % synthétique** : politiques, FAQ et procédures
+originales pour une entreprise fictive, avec versions et droits d'accès explicites.
+Il ne contient aucun document réel importé ni aucune donnée client. Les questions
+et réponses de référence sont séparées des documents de recherche pour éviter de
+fausser l'évaluation. Voir le [guide du corpus](docs/synthetic-corpus.md).
+
 ## Documentation
 
 - [Guide de développement et de vérification](docs/development.md)
+- [Corpus synthétique : démarche, lecture et évaluation](docs/synthetic-corpus.md)
+- [Inventaire et provenance des données](data/README.md)
 - [Contrat du MVP et critères d’acceptation](docs/mvp.md)
 - [Architecture et responsabilités](docs/adr/0001-mvp.md)
 - [Réception durable : garanties et limites](docs/adr/0002-durable-ingress.md)
@@ -126,6 +135,7 @@ src/assistops/       API, sécurité des webhooks, persistance et observabilité
 src/assistops/migrations/
                     Migrations SQL versionnées
 scripts/            Démonstrations et vérifications locales
+data/               Documents synthétiques et jeux de référence séparés
 tests/              Tests unitaires et d’intégration
 docs/               Guides, contrat fonctionnel et décisions d’architecture
 .github/workflows/  Intégration continue
