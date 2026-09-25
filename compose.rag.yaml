@@ -1,0 +1,22 @@
+# Explicit opt-in: docker compose -f compose.yaml -f compose.rag.yaml up --build --wait
+services:
+  worker:
+    environment:
+      ASSISTOPS_WORKER_PROCESSOR: rag
+      ASSISTOPS_QDRANT_URL: http://qdrant:6333
+      # Inherited from the host environment; never print `docker compose config` with secrets.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY in the host environment}
+      ASSISTOPS_RAG_USER_ROLES: '{"demo":{"user-001":["customer"]}}'
+      ASSISTOPS_RAG_EMBEDDING_CACHE: /home/app/.cache/assistops/embeddings
+      ASSISTOPS_WORKER_TIMEOUT_SECONDS: 45
+      ASSISTOPS_WORKER_LEASE_SECONDS: 90
+    volumes:
+      - rag_cache:/home/app/.cache/assistops
+    depends_on:
+      qdrant:
+        condition: service_started
+    stop_grace_period: 60s
+
+volumes:
+  rag_cache:
+    name: assistops_rag_cache

@@ -20,7 +20,7 @@ docker compose up -d postgres qdrant
 L'API démarre aussi sans Docker : `/health/live` répond 200, tandis que
 `/health/ready` répond 503 si les dépendances sont indisponibles.
 Les variables applicatives sont préfixées par `ASSISTOPS_` (voir `.env.example`).
-Exception : `OPENAI_API_KEY` est aussi acceptée pour la CLI de recherche.
+Exception : `OPENAI_API_KEY` est aussi acceptée pour la recherche et le RAG Agent.
 Pour un `.env` préexistant, ajouter `ASSISTOPS_WEBHOOK_CONNECTORS` depuis l'exemple
 pour activer la réception locale. Ne pas remplacer les autres variables ou secrets.
 Documentation locale : <http://localhost:8000/docs>.
@@ -73,7 +73,7 @@ Pour vérifier le webhook dans Docker (identité publique locale de démonstrati
 ```
 
 Le script envoie deux fois un nouvel événement et vérifie que le reçu est identique.
-Avec `--wait`, il attend aussi le résultat du worker (30 secondes maximum).
+Avec `--wait`, il attend aussi le résultat du worker (60 secondes maximum).
 Les réponses `202` portent `receipt_id`, `event_id`, `status: received` et `duplicate`.
 Erreurs : `401` signature absente/invalide/expirée, `403` identité non autorisée,
 `408` délai de lecture du corps dépassé,
@@ -116,6 +116,33 @@ Valeurs par défaut : polling 1 s, traitement 20 s maximum, réservation 60 s,
 d'au moins 15 s. Les erreurs retournées sont des codes filtrés, pas les exceptions brutes.
 La readiness de l'API contrôle les dépendances et le schéma, pas la disponibilité du worker.
 
+## Garanties du traitement
+
+Le connecteur atteste l'identité de l'utilisateur auprès de l'API : la signature
+HMAC authentifie le connecteur, pas directement l'utilisateur final. Chaque
+connecteur doit avoir son propre secret et vérifier l'identité à la source.
+
+L'événement, le job et l'audit sont enregistrés dans une même transaction avant
+la réponse `202`. L'unicité `(tenant_id, source, event_id)` empêche les doublons
+concurrents. Après une réponse perdue, renvoyer le même événement signé permet
+de retrouver son reçu sans créer un second job.
+
+Le worker utilise `FOR UPDATE SKIP LOCKED` pour réserver un job sans bloquer les
+autres workers. La transaction se termine avant le traitement externe. Un jeton
+et une expiration empêchent un worker ayant perdu sa réservation d'enregistrer
+un résultat obsolète. Le résultat et son audit sont validés ensemble.
+
+Après un crash, un appel externe peut être répété si son résultat n'a pas été
+enregistré. Les futurs outils métier devront donc gérer leur propre idempotence.
+Les particularités du RAG, notamment ses erreurs terminales et les réservations
+de budget, sont décrites dans le [guide RAG](rag-agent.md).
+
+Les migrations sont sérialisées par un verrou PostgreSQL ; chaque migration et
+son numéro de version sont validés ensemble. Les audits en base restent modifiables
+par un administrateur : ils ne constituent pas un journal inviolable.
+
+## Tests d'intégration
+
 Tests PostgreSQL réels, dans des schémas temporaires isolés supprimés après chaque test :
 
 ```powershell
@@ -143,7 +170,7 @@ Depuis la racine, sans services externes :
 La validation est également exécutée en CI. Elle vérifie notamment les références
 de preuve, les droits des sources attendues et la séparation de l'évaluation.
 L'ingestion OpenAI et la recherche Qdrant sont disponibles en CLI : voir le
-[guide détaillé](retrieval.md). La génération de réponses reste à implémenter.
+[guide détaillé](retrieval.md). Le [RAG Agent](rag-agent.md) ajoute les réponses sourcées et le mode worker `rag`.
 Pour les tests Qdrant, définir `ASSISTOPS_TEST_QDRANT_URL=http://localhost:6333`.
 Ces tests utilisent des vecteurs fictifs et ne consomment aucun crédit OpenAI.
 
@@ -153,11 +180,9 @@ Ces tests utilisent des vecteurs fictifs et ne consomment aucun crédit OpenAI.
 src/assistops/     API, configuration, santé et observabilité
 tests/            Tests automatisés du socle
 docs/mvp.md       Contrat fonctionnel et critères d'acceptation
-docs/adr/         Décisions d'architecture
 .github/workflows/ci.yml
 ```
 
-Voir le [contrat du MVP](mvp.md) et la [décision d'architecture](adr/0001-mvp.md).
-La [réception durable](adr/0002-durable-ingress.md) documente les garanties et limites.
+Voir le [contrat du MVP](mvp.md) pour le périmètre livré et les fonctions prévues.
 Références : [tests FastAPI](https://fastapi.tiangolo.com/tutorial/testing/),
 [ordre de démarrage Compose](https://docs.docker.com/compose/how-tos/startup-order/).

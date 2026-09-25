@@ -13,6 +13,7 @@ from assistops.worker import demo_processor, run_once, serve
 
 
 def store_for(settings):
+    settings.worker_processor = "demo"
     store = Mock(settings=settings)
     store.claim.return_value = Lease(uuid4(), uuid4(), 1, PAYLOAD, "worker-test")
     store.finish.return_value = True
@@ -107,6 +108,7 @@ def test_graceful_stop_saves_current_work_before_exit(settings, monkeypatch):
 
 
 def test_worker_recovers_after_database_error(settings, monkeypatch, capsys):
+    settings.worker_processor = "demo"
     settings.worker_poll_seconds = 0.1
     calls = []
 

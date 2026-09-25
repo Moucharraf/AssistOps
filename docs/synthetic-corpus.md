@@ -202,5 +202,5 @@ Le découpage, les embeddings OpenAI et la recherche Qdrant avec filtres serveur
 sont implémentés en CLI. Le [guide de recherche](retrieval.md) explique chaque étape,
 les coûts, les commandes et les limites du résultat mesuré. Les tests du calcul
 de métrique restent distincts de cette évaluation réelle. Aucun entraînement
-n'a été effectué. La génération avec citations et le branchement au worker restent
-à construire.
+n'a été effectué. La génération avec citations et le branchement au worker sont documentés
+dans le [guide du RAG Agent](rag-agent.md).

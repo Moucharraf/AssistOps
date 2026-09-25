@@ -1,8 +1,8 @@
 # Recherche documentaire : ingestion et évaluation
 
 Cette étape implémente la recherche sémantique en ligne de commande. Elle retourne
-des passages et leurs sources ; la génération de réponses et le branchement au
-worker LangGraph restent à construire.
+des passages et leurs sources. Le [RAG Agent](rag-agent.md) les utilise maintenant
+pour générer des réponses sourcées via le worker. Le Supervisor LangGraph reste à construire.
 
 ## Données et fonctionnement
 

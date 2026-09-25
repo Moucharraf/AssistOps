@@ -13,7 +13,12 @@ from assistops.config import Settings
 
 
 class OpenAIEmbeddings:
-    def __init__(self, settings: Settings, cache: Path = Path(".cache/embeddings")):
+    def __init__(
+        self, settings: Settings, cache: Path = Path(".cache/embeddings"), attempts: int = 3
+    ):
+        if not 1 <= attempts <= 3:
+            raise ValueError("Invalid embedding attempt limit")
+        self.attempts = attempts
         if not settings.openai_api_key:
             raise ValueError("Configure OPENAI_API_KEY or ASSISTOPS_OPENAI_API_KEY")
         self.model = settings.embedding_model
@@ -59,7 +64,7 @@ class OpenAIEmbeddings:
         for offset in range(0, len(missing), 32):
             batch = missing[offset : offset + 32]
             response = None
-            for attempt in range(3):
+            for attempt in range(self.attempts):
                 # Count retries conservatively: a lost response may still have been billed.
                 size = sum(len(texts[index].encode("utf-8")) for index in batch)
                 if self.requested_bytes + size > self.max_requested_bytes:
@@ -76,7 +81,7 @@ class OpenAIEmbeddings:
                         },
                     )
                 except httpx.TransportError:
-                    if attempt == 2:
+                    if attempt == self.attempts - 1:
                         raise RuntimeError("Embedding service unreachable") from None
                 else:
                     if response.status_code == 200:

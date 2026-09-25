@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr, model_validator
@@ -32,7 +33,12 @@ class Settings(BaseSettings):
     dependency_timeout_seconds: float = Field(default=3.0, ge=0.1, le=30)
     webhook_connectors: dict[str, Connector] = Field(default_factory=dict)
     webhook_body_timeout_seconds: float = Field(default=10, ge=0.1, le=30)
-    worker_processor: Literal["disabled", "demo"] = "disabled"
+    worker_processor: Literal["disabled", "demo", "rag"] = "disabled"
+    rag_model: Literal["gpt-4.1-mini-2025-04-14"] = "gpt-4.1-mini-2025-04-14"
+    # Resolve permissions from trusted configuration, never from message content.
+    rag_user_roles: dict[str, dict[str, frozenset[str]]] = Field(default_factory=dict)
+    rag_daily_attempts: int = Field(default=5, ge=0, le=20)
+    rag_embedding_cache: Path = Path(".cache/embeddings")
     worker_poll_seconds: float = Field(default=1, ge=0.1, le=30)
     worker_timeout_seconds: float = Field(default=20, ge=0.1, le=300)
     worker_lease_seconds: int = Field(default=60, ge=20, le=600)

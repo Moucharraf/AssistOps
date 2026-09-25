@@ -51,18 +51,21 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Fiabilité | Persistance transactionnelle, idempotence et audit de réception | Implémenté |
 | Observabilité | Logs JSON, correlation IDs, contrôles de santé | Implémenté |
 | Développement | Docker Compose, migrations, tests et workflow GitHub Actions | Implémenté |
-| Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, processeur démo |
-| Orchestration | Supervisor LangGraph, RAG Agent et Tools Agent | Prévu |
+| Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, modes démo et RAG |
+| Orchestration | Supervisor LangGraph et Tools Agent | Prévu |
+| Réponses | RAG Agent, citations vérifiées, abstention et quota persistant | Implémenté |
 | Connaissances | Corpus synthétique réaliste, provenance et questions de référence | Disponible |
 | Recherche | Ingestion OpenAI, recherche Qdrant filtrée et passages sourcés | Implémenté en CLI |
 | Actions | Outils CRM/facturation/tickets et approbations humaines | Prévu |
 | Mémoire | Conversations persistées entre sessions | Prévu |
 | Intégrations | n8n, Slack, e-mail et API métier réelles | Prévu |
-| Évaluation | LangSmith, latence/tokens/coût, évaluation RAG et E2E métier | Prévu |
+| Évaluation | Recall documentaire, tokens/coût estimé et latence RAG | Implémenté |
+| Tracing | LangSmith et E2E métier complets | Prévu |
 
-Le worker exécute actuellement un processeur de démonstration et conserve son résultat
-dans PostgreSQL. Ce résultat confirme le fonctionnement du traitement asynchrone ;
-il ne répond pas encore à la demande métier et n'exécute aucune action externe.
+Le worker propose un mode de démonstration et un mode RAG qui répond aux questions
+documentaires avec des citations vérifiées. Les résultats sont conservés dans
+PostgreSQL et consultables avec l'identité signée d'origine. Le RAG n'exécute
+pas encore d'action métier. Voir le [guide du RAG Agent](docs/rag-agent.md).
 
 ## Stack technique
 
@@ -115,6 +118,10 @@ la qualité de réponses générées ni une performance générale en production
 Les scénarios E2E métier restent à implémenter. Voir le [rapport](retrieval-reports/baseline.json)
 et le [guide de recherche](docs/retrieval.md).
 
+Le parcours RAG est également vérifié sur trois cas réels : réponse sourcée,
+information absente et demande hors droits. Les [résultats](retrieval-reports/rag-smoke.json)
+sont des contrôles ponctuels sur données synthétiques, pas un benchmark de production.
+
 Le corpus de démonstration est **100 % synthétique** : politiques, FAQ et procédures
 originales pour une entreprise fictive, avec versions et droits d'accès explicites.
 Il ne contient aucun document réel importé ni aucune donnée client. Les questions
@@ -123,14 +130,12 @@ fausser l'évaluation. Voir le [guide du corpus](docs/synthetic-corpus.md).
 
 ## Documentation
 
+- [RAG Agent : réponses sourcées, configuration et limites](docs/rag-agent.md)
 - [Recherche documentaire : fonctionnement, coût et commandes](docs/retrieval.md)
 - [Guide de développement et de vérification](docs/development.md)
 - [Corpus synthétique : démarche, lecture et évaluation](docs/synthetic-corpus.md)
 - [Inventaire et provenance des données](data/README.md)
 - [Contrat du MVP et critères d’acceptation](docs/mvp.md)
-- [Architecture et responsabilités](docs/adr/0001-mvp.md)
-- [Réception durable : garanties et limites](docs/adr/0002-durable-ingress.md)
-- [Worker : réservations, retries et reprise](docs/adr/0003-worker.md)
 
 ## Organisation du dépôt
 
@@ -141,6 +146,6 @@ src/assistops/migrations/
 scripts/            Démonstrations et vérifications locales
 data/               Documents synthétiques et jeux de référence séparés
 tests/              Tests unitaires et d’intégration
-docs/               Guides, contrat fonctionnel et décisions d’architecture
+docs/               Guides de développement, corpus, RAG et périmètre fonctionnel
 .github/workflows/  Intégration continue
 ```

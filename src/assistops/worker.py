@@ -11,6 +11,7 @@ from assistops.config import Settings
 from assistops.events import EventInput
 from assistops.jobs import Exhausted, JobStore
 from assistops.observability import configure_logging
+from assistops.rag_agent import RagProcessor
 
 logger = structlog.get_logger()
 Processor = Callable[[EventInput], Awaitable[dict]]
@@ -64,10 +65,13 @@ async def run_once(store: JobStore, processor: Processor) -> bool:
 
 
 async def serve(settings: Settings, stop: asyncio.Event) -> None:
+    if settings.worker_processor == "disabled":
+        raise ValueError("Worker processor is disabled")
+    processor = RagProcessor(settings) if settings.worker_processor == "rag" else demo_processor
     store = JobStore(settings)
     while not stop.is_set():
         try:
-            did_work = await run_once(store, demo_processor)
+            did_work = await run_once(store, processor)
         except psycopg.Error as exc:
             # An uncertain commit is reconciled by the lease and durable job state.
             logger.warning("worker_storage_unavailable", error_type=type(exc).__name__)
@@ -90,7 +94,7 @@ async def main(settings: Settings) -> None:
 if __name__ == "__main__":
     configure_logging()
     settings = Settings()
-    if settings.worker_processor != "demo":
+    if settings.worker_processor == "disabled":
         logger.error("worker_processor_disabled")
         raise SystemExit(1)
     asyncio.run(main(settings))

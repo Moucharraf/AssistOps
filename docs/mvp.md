@@ -22,9 +22,9 @@ de webhook ou une reprise après incident. Les API métier seront d'abord simul�
 }
 ```
 
-Le tenant et l'identité seront vérifiés auprès du connecteur authentifié. Une identité
-dans le JSON ou suggérée par le modèle ne suffit pas. Une conversation reste associée
-à un tenant et à ses participants autorisés ; son identifiant ne donne aucun droit.
+Le tenant et l'identité sont vérifiés auprès du connecteur authentifié. Une identité
+dans le JSON ou suggérée par le modèle ne suffit pas. L'identifiant de conversation
+ne donne aucun droit ; la gestion de ses participants reste à implémenter.
 
 Headers : `X-AssistOps-Connector`, `X-AssistOps-Timestamp`, `X-AssistOps-Signature`,
 `X-Correlation-ID` optionnel. Signature : `v1=` suivi du HMAC-SHA256 hexadécimal
@@ -34,8 +34,8 @@ constant, horodatage accepté à ±300 secondes, corps limité à 64 Kio.
 Une réponse `202` signifie que l'événement, le travail en attente et l'audit sont
 persistés transactionnellement. Une contrainte unique `(tenant_id, source, event_id)`
 empêche les doublons ; réutiliser un identifiant avec un contenu différent retourne `409`.
-Le reçu est stable après redémarrage. Un worker exécute désormais un traitement
-de démonstration sans action métier. Le statut et son résultat sont accessibles via
+Le reçu est stable après redémarrage. Le worker exécute le processeur démo ou le
+RAG Agent, sans action métier. Le statut et son résultat sont accessibles via
 `POST /v1/events/status`, avec une requête signée et limitée à l'identité d'origine.
 
 ## Agents et approbation
@@ -56,7 +56,10 @@ Le simulateur garantira l'idempotence ; un service réel devra accepter cette cl
 ou offrir une réconciliation. Un appel réseau et une transaction locale ne suffisent
 pas à garantir ensemble une exécution unique après crash.
 
-## Dix critères E2E à implémenter
+## Critères E2E du parcours cible
+
+Les cas documentaires et les reprises du worker sont déjà testés. Le parcours
+complet avec outils métier et approbations reste à implémenter.
 
 1. Une question documentaire obtient une réponse avec sources autorisées.
 2. L'absence de source est signalée.
@@ -69,28 +72,29 @@ pas à garantir ensemble une exécution unique après crash.
 9. Une interruption permet une reprise depuis l'état persisté.
 10. Une instruction malveillante dans un document ne contourne pas les droits.
 
-Les tests HMAC, concurrence, retries, timeouts et limites s'y ajouteront.
+Les tests HMAC, concurrence, retries, timeouts et limites complètent ces critères.
 
 ## Jalons
 
 1. **Socle livré** : configuration, API, santé, logs, Docker et CI.
 2. **Réception durable livrée** : migrations, événements, HMAC, idempotence et audit.
    Le worker, les retries, la reprise par expiration de réservation et le statut
-   authentifié sont livrés avec un processeur de démonstration. Les reprises des
+   authentifié sont livrés avec les processeurs démo et RAG. Les reprises des
    étapes internes LangGraph restent à implémenter avec les agents.
 3. **RAG** : corpus synthétique et benchmark de référence livrés et documentés.
    Ingestion, embeddings et recherche Qdrant filtrée livrés en CLI.
-   Génération avec citations et connexion au worker restent à implémenter.
+   RAG Agent avec citations vérifiées, abstention et connexion au worker livré.
+   Configuration et limites : [guide RAG](rag-agent.md).
 4. **Agents et métier** : LangGraph, outils simulés et approbations persistées.
 5. **Intégration** : n8n, connecteurs réels, LangSmith, limites et E2E.
 
-Les clés OpenAI et le choix du modèle seront nécessaires pour les embeddings et
-les réponses générées. Le corpus actuel est entièrement synthétique, sans contenu
+La clé OpenAI configure les embeddings et les réponses générées ; les modèles sont
+définis dans la configuration. Le corpus actuel est entièrement synthétique, sans contenu
 externe importé. Le jeu versionné contient 20 questions : 16 avec sources attendues,
 2 sans réponse disponible et 2 demandes à refuser. Le Recall@5 documentaire est
 calculé sur les 16 premières ; quatre d'entre elles nécessitent deux documents.
 Les cas d'abstention et de refus sont évalués séparément, sans score de recall fictif.
 Voir le [guide du corpus](synthetic-corpus.md) pour la formule et les limites.
 Le [guide de recherche](retrieval.md) documente la mesure réelle du Recall@5,
-les tokens des embeddings et leur coût estimé. La latence et les coûts de
-génération restent à instrumenter.
+les tokens des embeddings et leur coût estimé. Le RAG Agent mesure aussi les tokens,
+la latence et le coût estimé de génération ; LangSmith reste à intégrer.

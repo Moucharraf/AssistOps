@@ -10,7 +10,8 @@ from uuid import uuid4
 import httpx
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--wait", action="store_true", help="Wait for the demo worker result")
+parser.add_argument("--wait", action="store_true", help="Wait for the worker result")
+parser.add_argument("--processor", choices=["demo", "rag"], default="demo")
 args = parser.parse_args()
 
 
@@ -59,18 +60,21 @@ with httpx.Client(base_url="http://localhost:8000", timeout=15) as client:
                 "source": "webhook",
             }
         ).encode()
-        deadline = time.monotonic() + 30
+        deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
             status = client.post("/v1/events/status", content=query, headers=signed_headers(query))
             status.raise_for_status()
             state = status.json()
             if state["status"] in ("completed", "failed"):
                 assert state["status"] == "completed", state
-                assert state["result"]["processor"] == "demo"
+                assert state["result"]["processor"] == args.processor
                 assert state["result"]["business_action_executed"] is False
+                if args.processor == "rag":
+                    assert state["result"]["outcome"] == "answered", state["result"]["outcome"]
+                    assert state["result"]["citations"]
                 report["job"] = state
                 break
             time.sleep(0.25)
         else:
-            raise TimeoutError("Demo worker did not complete within 30 seconds")
+            raise TimeoutError("Worker did not complete within 60 seconds")
     print(json.dumps(report, indent=2))
