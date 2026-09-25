@@ -193,14 +193,14 @@ Le fichier doit contenir `corpus_id: "asterdesk-fr-v1"` et un tableau `rankings`
 avec exactement une entrée pour chacun des identifiants Q01 à Q20. Chaque entrée
 contient `question_id` et `documents`, la liste ordonnée des clés retournées.
 Une liste vide est autorisée. Les clés inconnues, doublons et résultats partiels
-sont refusés. Aucun fichier de résultats prétendument réels n'est fourni à ce stade.
+sont refusés. Les résultats réels de recherche sont maintenant conservés dans
+[le rapport de référence](../retrieval-reports/baseline.json).
 
-## 9. Ce qui est livré et ce qui suit
+## 9. Recherche sémantique disponible
 
-Livré : documents, provenance explicite, benchmark avec preuves, chargeur contrôlé,
-filtres locaux, validateur et calcul du recall testé sur des cas construits.
-
-À venir : découpage en passages, embeddings, indexation Qdrant avec filtres serveur,
-recherche réelle, citations dans les réponses et intégration du RAG au worker.
-Nous n'avons encore ni entraîné ni évalué un modèle sur ce corpus. Les tests du
-calcul de métrique vérifient une formule ; ils ne constituent pas un score RAG.
+Le découpage, les embeddings OpenAI et la recherche Qdrant avec filtres serveur
+sont implémentés en CLI. Le [guide de recherche](retrieval.md) explique chaque étape,
+les coûts, les commandes et les limites du résultat mesuré. Les tests du calcul
+de métrique restent distincts de cette évaluation réelle. Aucun entraînement
+n'a été effectué. La génération avec citations et le branchement au worker restent
+à construire.

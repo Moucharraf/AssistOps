@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     )
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: SecretStr | None = None
+    openai_api_key: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("ASSISTOPS_OPENAI_API_KEY", "OPENAI_API_KEY")
+    )
+    embedding_model: Literal["text-embedding-3-small"] = "text-embedding-3-small"
+    embedding_dimensions: int = Field(default=1536, ge=256, le=1536)
     dependency_timeout_seconds: float = Field(default=3.0, ge=0.1, le=30)
     webhook_connectors: dict[str, Connector] = Field(default_factory=dict)
     webhook_body_timeout_seconds: float = Field(default=10, ge=0.1, le=30)

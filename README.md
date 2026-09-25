@@ -54,7 +54,7 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, processeur démo |
 | Orchestration | Supervisor LangGraph, RAG Agent et Tools Agent | Prévu |
 | Connaissances | Corpus synthétique réaliste, provenance et questions de référence | Disponible |
-| Recherche | Ingestion, embeddings, recherche Qdrant et citations | Prévu |
+| Recherche | Ingestion OpenAI, recherche Qdrant filtrée et passages sourcés | Implémenté en CLI |
 | Actions | Outils CRM/facturation/tickets et approbations humaines | Prévu |
 | Mémoire | Conversations persistées entre sessions | Prévu |
 | Intégrations | n8n, Slack, e-mail et API métier réelles | Prévu |
@@ -66,9 +66,9 @@ il ne répond pas encore à la demande métier et n'exécute aucune action exter
 
 ## Stack technique
 
-**Socle :** Python · FastAPI · PostgreSQL · Qdrant · Docker · pytest · structlog · GitHub Actions.
+**Socle :** Python · FastAPI · OpenAI · PostgreSQL · Qdrant · Docker · pytest · structlog · GitHub Actions.
 
-**Intégrations prévues :** LangGraph · LangChain · OpenAI · n8n · LangSmith.
+**Intégrations prévues :** LangGraph · LangChain · n8n · LangSmith.
 
 ## Démarrage rapide
 
@@ -109,8 +109,11 @@ fournis par configuration ; `.env` est exclu de Git et des images Docker.
 Le rate limiting, les politiques de rétention, la rotation des secrets et les
 contrôles métier complémentaires font partie des travaux de préparation à la production.
 
-Les objectifs de Recall@5 et les scénarios E2E métier seront évalués sur des jeux
-versionnés. Aucun score de performance non mesuré n’est présenté comme résultat acquis.
+La recherche obtient un Recall@5 documentaire de **96,875 %** sur les 16 questions
+répondables du petit corpus synthétique de référence. Ce résultat ne mesure ni
+la qualité de réponses générées ni une performance générale en production.
+Les scénarios E2E métier restent à implémenter. Voir le [rapport](retrieval-reports/baseline.json)
+et le [guide de recherche](docs/retrieval.md).
 
 Le corpus de démonstration est **100 % synthétique** : politiques, FAQ et procédures
 originales pour une entreprise fictive, avec versions et droits d'accès explicites.
@@ -120,6 +123,7 @@ fausser l'évaluation. Voir le [guide du corpus](docs/synthetic-corpus.md).
 
 ## Documentation
 
+- [Recherche documentaire : fonctionnement, coût et commandes](docs/retrieval.md)
 - [Guide de développement et de vérification](docs/development.md)
 - [Corpus synthétique : démarche, lecture et évaluation](docs/synthetic-corpus.md)
 - [Inventaire et provenance des données](data/README.md)

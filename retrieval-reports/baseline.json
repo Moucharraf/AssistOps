@@ -1,0 +1,335 @@
+{
+  "data_origin": "100% synthetic; no customer or imported public documents",
+  "ingestion": {
+    "collection": "assistops_knowledge_d8eecd8ed224_7359744e",
+    "alias": "assistops_knowledge",
+    "chunks": 95,
+    "documents": 23,
+    "corpus_sha256": "d8eecd8ed22433d4ba25790f0843f4118214e478e5c0e3234681b97051785ad5",
+    "model": "openai_text-embedding-3-small_1536",
+    "tokens_used": 9133
+  },
+  "retrieval": {
+    "predictions": {
+      "corpus_id": "asterdesk-fr-v1",
+      "rankings": [
+        {
+          "question_id": "Q01",
+          "documents": [
+            "billing-disputes@2",
+            "billing-cycle@1",
+            "payment-failures@1",
+            "refund-policy@1",
+            "invoice-access@1"
+          ]
+        },
+        {
+          "question_id": "Q02",
+          "documents": [
+            "billing-disputes@2",
+            "payment-failures@1",
+            "billing-cycle@1",
+            "refund-policy@1",
+            "invoice-access@1"
+          ]
+        },
+        {
+          "question_id": "Q03",
+          "documents": [
+            "refund-policy@1",
+            "billing-disputes@2",
+            "payment-failures@1",
+            "invoice-access@1",
+            "subscription-changes@1"
+          ]
+        },
+        {
+          "question_id": "Q04",
+          "documents": [
+            "payment-failures@1",
+            "refund-policy@1",
+            "billing-disputes@2",
+            "subscription-changes@1",
+            "billing-cycle@1"
+          ]
+        },
+        {
+          "question_id": "Q05",
+          "documents": [
+            "plans@1",
+            "subscription-changes@1",
+            "invoice-access@1",
+            "payment-failures@1",
+            "refund-policy@1"
+          ]
+        },
+        {
+          "question_id": "Q06",
+          "documents": [
+            "subscription-changes@1",
+            "billing-disputes@2",
+            "retention@1",
+            "plans@1",
+            "support-priorities@2"
+          ]
+        },
+        {
+          "question_id": "Q07",
+          "documents": [
+            "support-priorities@2",
+            "payment-failures@1",
+            "incident-communication@1",
+            "refund-policy@1",
+            "data-export@1"
+          ]
+        },
+        {
+          "question_id": "Q08",
+          "documents": [
+            "retention@1",
+            "password-reset@1",
+            "payment-failures@1",
+            "data-export@1",
+            "refund-policy@1"
+          ]
+        },
+        {
+          "question_id": "Q09",
+          "documents": [
+            "invoice-access@1",
+            "billing-cycle@1",
+            "retention@1",
+            "data-export@1",
+            "subscription-changes@1"
+          ]
+        },
+        {
+          "question_id": "Q10",
+          "documents": [
+            "onboarding@1",
+            "invoice-access@1",
+            "subscription-changes@1",
+            "refund-policy@1",
+            "offboarding@1"
+          ]
+        },
+        {
+          "question_id": "Q11",
+          "documents": [
+            "offboarding@1",
+            "support-escalation@1",
+            "subscription-changes@1",
+            "service-cancellation@1",
+            "password-reset@1"
+          ]
+        },
+        {
+          "question_id": "Q12",
+          "documents": [
+            "refund-approvals@1",
+            "refund-policy@1",
+            "billing-disputes@2",
+            "payment-failures@1",
+            "subscription-changes@1"
+          ]
+        },
+        {
+          "question_id": "Q13",
+          "documents": [
+            "billing-disputes@2",
+            "ticket-creation@1",
+            "invoice-access@1",
+            "billing-cycle@1",
+            "subscription-changes@1"
+          ]
+        },
+        {
+          "question_id": "Q14",
+          "documents": [
+            "service-cancellation@1",
+            "data-export@1",
+            "invoice-access@1",
+            "retention@1",
+            "refund-policy@1"
+          ]
+        },
+        {
+          "question_id": "Q15",
+          "documents": [
+            "retention@1",
+            "payment-failures@1",
+            "refund-policy@1",
+            "subscription-changes@1",
+            "ticket-creation@1"
+          ]
+        },
+        {
+          "question_id": "Q16",
+          "documents": [
+            "support-escalation@1",
+            "support-priorities@2",
+            "refund-policy@1",
+            "billing-disputes@2",
+            "payment-failures@1"
+          ]
+        },
+        {
+          "question_id": "Q17",
+          "documents": [
+            "invoice-access@1",
+            "billing-cycle@1",
+            "billing-disputes@2",
+            "payment-failures@1",
+            "refund-policy@1"
+          ]
+        },
+        {
+          "question_id": "Q18",
+          "documents": [
+            "plans@1",
+            "subscription-changes@1",
+            "billing-cycle@1",
+            "retention@1",
+            "invoice-access@1"
+          ]
+        },
+        {
+          "question_id": "Q19",
+          "documents": [
+            "refund-policy@1",
+            "billing-cycle@1",
+            "payment-failures@1",
+            "billing-disputes@2",
+            "invoice-access@1"
+          ]
+        },
+        {
+          "question_id": "Q20",
+          "documents": [
+            "billing-disputes@2",
+            "payment-failures@1",
+            "identity-verification@1",
+            "data-export@1",
+            "subscription-changes@1"
+          ]
+        }
+      ]
+    },
+    "evaluation": {
+      "metric": "document_recall@5",
+      "macro_recall": 0.96875,
+      "answerable_questions": 16,
+      "excluded_from_recall": 4,
+      "queries_with_ineligible_hits": 0,
+      "cases": [
+        {
+          "question_id": "Q01",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q02",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q03",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q04",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q05",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q06",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q07",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q08",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q09",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q10",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q11",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q12",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q13",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q14",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q15",
+          "recall": 0.5,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q16",
+          "recall": 1.0,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q17",
+          "recall": null,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q18",
+          "recall": null,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q19",
+          "recall": null,
+          "ineligible_hits": []
+        },
+        {
+          "question_id": "Q20",
+          "recall": null,
+          "ineligible_hits": []
+        }
+      ],
+      "scope": "retrieval_only_on_synthetic_reference_set"
+    },
+    "model": "openai_text-embedding-3-small_1536",
+    "collection": "assistops_knowledge_d8eecd8ed224_7359744e",
+    "tokens_used": 423
+  },
+  "estimated_embedding_cost_usd": 0.00019112,
+  "pricing_usd_per_million_tokens": 0.02,
+  "limitations": "Development reference set, not held out. Retrieval only; no generated answers, abstention or refusal evaluation."
+}

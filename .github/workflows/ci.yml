@@ -22,9 +22,10 @@ jobs:
       - run: docker compose up --build --wait --wait-timeout 180
       - name: Verify readiness
         run: curl --fail --retry 5 --retry-delay 2 http://localhost:8000/health/ready
-      - name: PostgreSQL integration tests
+      - name: PostgreSQL and Qdrant integration tests
         env:
           ASSISTOPS_TEST_DATABASE_URL: postgresql://assistops:assistops-local-only@localhost:5432/assistops
+          ASSISTOPS_TEST_QDRANT_URL: http://localhost:6333
         run: pytest -m integration
       - name: Signed webhook, replay and demo worker over HTTP
         run: python scripts/send_demo_event.py --wait

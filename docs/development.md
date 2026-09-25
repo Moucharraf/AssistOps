@@ -20,7 +20,7 @@ docker compose up -d postgres qdrant
 L'API démarre aussi sans Docker : `/health/live` répond 200, tandis que
 `/health/ready` répond 503 si les dépendances sont indisponibles.
 Les variables applicatives sont préfixées par `ASSISTOPS_` (voir `.env.example`).
-Les variables sans ce préfixe ne configurent pas ce socle.
+Exception : `OPENAI_API_KEY` est aussi acceptée pour la CLI de recherche.
 Pour un `.env` préexistant, ajouter `ASSISTOPS_WEBHOOK_CONNECTORS` depuis l'exemple
 pour activer la réception locale. Ne pas remplacer les autres variables ou secrets.
 Documentation locale : <http://localhost:8000/docs>.
@@ -142,7 +142,10 @@ Depuis la racine, sans services externes :
 
 La validation est également exécutée en CI. Elle vérifie notamment les références
 de preuve, les droits des sources attendues et la séparation de l'évaluation.
-L'ingestion Qdrant, les embeddings et la recherche réelle restent à implémenter.
+L'ingestion OpenAI et la recherche Qdrant sont disponibles en CLI : voir le
+[guide détaillé](retrieval.md). La génération de réponses reste à implémenter.
+Pour les tests Qdrant, définir `ASSISTOPS_TEST_QDRANT_URL=http://localhost:6333`.
+Ces tests utilisent des vecteurs fictifs et ne consomment aucun crédit OpenAI.
 
 ## Structure du dépôt
 

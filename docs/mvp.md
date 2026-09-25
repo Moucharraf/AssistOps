@@ -79,7 +79,8 @@ Les tests HMAC, concurrence, retries, timeouts et limites s'y ajouteront.
    authentifié sont livrés avec un processeur de démonstration. Les reprises des
    étapes internes LangGraph restent à implémenter avec les agents.
 3. **RAG** : corpus synthétique et benchmark de référence livrés et documentés.
-   Ingestion, embeddings, recherche Qdrant et citations dans les réponses restent à implémenter.
+   Ingestion, embeddings et recherche Qdrant filtrée livrés en CLI.
+   Génération avec citations et connexion au worker restent à implémenter.
 4. **Agents et métier** : LangGraph, outils simulés et approbations persistées.
 5. **Intégration** : n8n, connecteurs réels, LangSmith, limites et E2E.
 
@@ -90,5 +91,6 @@ externe importé. Le jeu versionné contient 20 questions : 16 avec sources atte
 calculé sur les 16 premières ; quatre d'entre elles nécessitent deux documents.
 Les cas d'abstention et de refus sont évalués séparément, sans score de recall fictif.
 Voir le [guide du corpus](synthetic-corpus.md) pour la formule et les limites.
-Latence, tokens et coût seront mesurés sur les appels réels ; aucun résultat RAG
-n'a encore été mesuré.
+Le [guide de recherche](retrieval.md) documente la mesure réelle du Recall@5,
+les tokens des embeddings et leur coût estimé. La latence et les coûts de
+génération restent à instrumenter.
