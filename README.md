@@ -60,7 +60,8 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Actions | Tools Agent : utilisateur, facture, proposition de ticket | Implémenté, services simulés |
 | Approbations | Décision signée, expiration, audit et création idempotente | Implémenté, tickets simulés |
 | Mémoire | Contexte privé entre messages et redémarrages | Implémenté, historique borné |
-| Intégrations | n8n, Slack, e-mail et API métier réelles | Prévu |
+| Intégrations | Webhooks n8n authentifiés, signature et suivi du résultat | Implémenté, environnement local |
+| Connecteurs externes | Slack, e-mail et API métier réelles | Prévu |
 | Évaluation | Recall documentaire, tokens/coût estimé et latence RAG | Implémenté |
 | Tracing | Export des traces vers LangSmith | Prévu |
 
@@ -86,7 +87,10 @@ décrit les appels et le parcours d'approbation.
 
 **Socle :** Python · LangGraph · LangChain Core · FastAPI · OpenAI · PostgreSQL · Qdrant · Docker · pytest · structlog · GitHub Actions.
 
-**Intégrations prévues :** n8n · LangSmith (export des traces).
+**Intégrations :** n8n. **Prévu :** LangSmith (export des traces).
+
+Le [guide n8n](docs/n8n.md) décrit le démarrage du workflow, le contrat HTTP,
+la gestion des identités et les limites du déploiement local.
 
 ## Démarrage rapide
 

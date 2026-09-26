@@ -1,0 +1,205 @@
+{
+  "id": "assistopsWebhookV1",
+  "name": "AssistOps — authenticated local webhooks",
+  "active": false,
+  "nodes": [
+    {
+      "id": "submit-webhook",
+      "name": "submit webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "assistops-submit",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assistops/events",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "assistopsLocalIngress",
+          "name": "Webhook — PUBLIC LOCAL DEMO ONLY"
+        }
+      }
+    },
+    {
+      "id": "submit-request",
+      "name": "submit AssistOps",
+      "type": "CUSTOM.assistOps",
+      "typeVersion": 1,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "operation": "submit"
+      },
+      "credentials": {
+        "assistOpsApi": {
+          "id": "assistopsLocalApi",
+          "name": "AssistOps — PUBLIC LOCAL DEMO ONLY"
+        }
+      }
+    },
+    {
+      "id": "submit-response",
+      "name": "submit response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        520,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              },
+              {
+                "name": "Retry-After",
+                "value": "={{ $json.retryAfter || \"0\" }}"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "status-webhook",
+      "name": "status webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        260
+      ],
+      "webhookId": "assistops-status",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assistops/status",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "assistopsLocalIngress",
+          "name": "Webhook — PUBLIC LOCAL DEMO ONLY"
+        }
+      }
+    },
+    {
+      "id": "status-request",
+      "name": "status AssistOps",
+      "type": "CUSTOM.assistOps",
+      "typeVersion": 1,
+      "position": [
+        260,
+        260
+      ],
+      "parameters": {
+        "operation": "status"
+      },
+      "credentials": {
+        "assistOpsApi": {
+          "id": "assistopsLocalApi",
+          "name": "AssistOps — PUBLIC LOCAL DEMO ONLY"
+        }
+      }
+    },
+    {
+      "id": "status-response",
+      "name": "status response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        520,
+        260
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              },
+              {
+                "name": "Retry-After",
+                "value": "={{ $json.retryAfter || \"0\" }}"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "submit webhook": {
+      "main": [
+        [
+          {
+            "node": "submit AssistOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "submit AssistOps": {
+      "main": [
+        [
+          {
+            "node": "submit response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "status webhook": {
+      "main": [
+        [
+          {
+            "node": "status AssistOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "status AssistOps": {
+      "main": [
+        [
+          {
+            "node": "status response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "none",
+    "saveDataSuccessExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false,
+    "executionTimeout": 30
+  }
+}
