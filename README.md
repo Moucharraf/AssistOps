@@ -64,7 +64,7 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Connecteurs externes | Slack, e-mail et API CRM/facturation réelles | Prévu |
 | Tickets Jira Cloud | Envoi après approbation, suivi durable et rapprochement des résultats incertains | Implémenté, création et rejeu validés sur Jira Cloud |
 | Évaluation | Recall documentaire, tokens/coût estimé et latence RAG | Implémenté |
-| Tracing | Export des traces vers LangSmith | Prévu |
+| Tracing | Traces LangSmith filtrées, hiérarchie des agents et compteurs | Implémenté, activation explicite |
 
 Le Supervisor analyse une demande en langage naturel et peut enchaîner une recherche
 documentaire, une lecture métier et une proposition de ticket. Son plan est validé
@@ -88,7 +88,7 @@ décrit les appels et le parcours d'approbation.
 
 **Socle :** Python · LangGraph · LangChain Core · FastAPI · OpenAI · PostgreSQL · Qdrant · Docker · pytest · structlog · GitHub Actions.
 
-**Intégrations :** n8n. **Prévu :** LangSmith (export des traces).
+**Intégrations :** n8n · Jira Cloud · LangSmith (traces filtrées).
 
 Le [guide n8n](docs/n8n.md) décrit le démarrage du workflow, le contrat HTTP,
 la gestion des identités et les limites du déploiement local.
@@ -96,6 +96,9 @@ la gestion des identités et les limites du déploiement local.
 Le [guide Jira Cloud](docs/jira.md) décrit l’intégration optionnelle des tickets,
 la configuration des droits et le traitement des réponses incertaines. Les données
 CRM restent synthétiques ; l’activation Jira permet de créer de vrais tickets.
+
+Le [guide LangSmith](docs/langsmith.md) décrit les données exportées, la configuration
+cloud ou auto-hébergée et le comportement en cas de panne de télémétrie.
 
 ## Démarrage rapide
 

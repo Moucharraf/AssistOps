@@ -13,6 +13,7 @@ from assistops.config import Settings
 from assistops.events import CreateTicket, EventError, EventInput, GetUser
 from assistops.jobs import audit
 from assistops.storage import connect
+from assistops.tracing import traced
 
 
 def fingerprint(event_id, tenant, requester, connector, arguments):
@@ -389,6 +390,7 @@ class ToolsProcessor:
     def __init__(self, settings: Settings):
         self.tools = BusinessTools(settings)
 
+    @traced("tools")
     async def __call__(self, event: EventInput):
         try:
             return await asyncio.to_thread(self.tools.execute, event)

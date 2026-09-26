@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -62,9 +63,41 @@ class Settings(BaseSettings):
     worker_lease_seconds: int = Field(default=60, ge=20, le=600)
     worker_max_attempts: int = Field(default=3, ge=1, le=10)
     worker_retry_seconds: float = Field(default=2, ge=0.1, le=60)
+    langsmith_enabled: bool = False
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_project: str = Field(
+        default="assistops",
+        min_length=1,
+        max_length=100,
+        validation_alias=AliasChoices("ASSISTOPS_LANGSMITH_PROJECT", "LANGSMITH_PROJECT"),
+    )
+    langsmith_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias=AliasChoices("ASSISTOPS_LANGSMITH_API_KEY", "LANGSMITH_API_KEY"),
+    )
 
     @model_validator(mode="after")
     def validate_worker(self):
+        endpoint = urlsplit(self.langsmith_endpoint)
+        if (
+            endpoint.scheme not in {"http", "https"}
+            or not endpoint.hostname
+            or endpoint.username
+            or endpoint.password
+            or endpoint.query
+            or endpoint.fragment
+        ):
+            raise ValueError(
+                "LangSmith endpoint must be an HTTP(S) URL without credentials or query"
+            )
+        if self.environment == "production" and endpoint.scheme != "https":
+            raise ValueError("Production LangSmith requires HTTPS")
+        if (
+            self.langsmith_enabled
+            and not self.langsmith_api_key
+            and endpoint.hostname in {"api.smith.langchain.com", "eu.api.smith.langchain.com"}
+        ):
+            raise ValueError("LangSmith tracing requires an API key")
         if self.ticket_backend == "jira" and not all(
             (self.jira_site, self.jira_project_key, self.jira_issue_type_id, self.jira_tenant_id)
         ):

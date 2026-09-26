@@ -29,6 +29,7 @@ from assistops.jobs import audit
 from assistops.memory import ConversationMemory
 from assistops.rag_agent import RagProcessor
 from assistops.storage import connect
+from assistops.tracing import traced
 
 logger = structlog.get_logger()
 ROUTER_VERSION = "router-v2-memory"
@@ -247,6 +248,7 @@ class SupervisorProcessor:
         value = [sorted(rag), sorted(business), self.settings.business_backend]
         return hashlib.sha256(json.dumps(value).encode()).hexdigest(), bool(rag or business)
 
+    @traced("route")
     async def route(self, state):
         event = state["event"]
         scope, permitted = self.access_scope(event)
@@ -384,10 +386,11 @@ class SupervisorProcessor:
             metadata["read_result"] = state["results"]["read"]
         return {"response": {**answer, "supervisor": metadata}}
 
+    @traced("supervisor")
     async def __call__(self, event):
         try:
             # Do not export raw graph state through ambient LangSmith environment variables.
-            # Remote tracing requires a separate redaction policy before it can be enabled.
+            # Explicit AssistOps spans export only allowlisted metrics through a separate context.
             with tracing_context(enabled=False):
                 final = await self.graph.ainvoke(
                     {"event": event, "results": {}}, config={"recursion_limit": 8}

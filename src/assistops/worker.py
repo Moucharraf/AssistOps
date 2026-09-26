@@ -15,6 +15,7 @@ from assistops.observability import configure_logging
 from assistops.rag_agent import RagProcessor
 from assistops.supervisor import SupervisorProcessor
 from assistops.ticket_delivery import deliver_once
+from assistops.tracing import correlation_ref, record, span, tracing_session
 
 logger = structlog.get_logger()
 Processor = Callable[[EventInput], Awaitable[dict]]
@@ -37,6 +38,16 @@ async def run_once(store: JobStore, processor: Processor) -> bool:
     if isinstance(lease, Exhausted):
         logger.warning("job_attempts_exhausted", event_id=str(lease.event_id))
         return True
+    with span(
+        "worker",
+        event_id=str(lease.event_id),
+        correlation_ref=correlation_ref(lease.correlation_id),
+        attempt=lease.attempt,
+    ):
+        return await process_lease(store, processor, lease)
+
+
+async def process_lease(store, processor, lease):
     context = structlog.contextvars.bind_contextvars(
         correlation_id=lease.correlation_id, event_id=str(lease.event_id), attempt=lease.attempt
     )
@@ -62,6 +73,9 @@ async def run_once(store: JobStore, processor: Processor) -> bool:
         saved = await asyncio.to_thread(
             store.finish, lease, result=result if error is None else None, error=error
         )
+        record(
+            {**(result or {}), "job_saved": saved, **({"outcome": "unavailable"} if error else {})}
+        )
         logger.info("job_outcome_saved" if saved else "job_lease_lost", error_code=error)
     finally:
         structlog.contextvars.reset_contextvars(**context)
@@ -69,6 +83,11 @@ async def run_once(store: JobStore, processor: Processor) -> bool:
 
 
 async def serve(settings: Settings, stop: asyncio.Event) -> None:
+    with tracing_session(settings):
+        await serve_with_tracing(settings, stop)
+
+
+async def serve_with_tracing(settings: Settings, stop: asyncio.Event) -> None:
     if settings.worker_processor == "disabled":
         raise ValueError("Worker processor is disabled")
     if settings.worker_processor == "supervisor":

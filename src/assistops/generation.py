@@ -5,8 +5,10 @@ import json
 import httpx
 
 from assistops.config import Settings
+from assistops.tracing import traced
 
 
+@traced("generation")
 async def structured_response(
     settings: Settings,
     *,

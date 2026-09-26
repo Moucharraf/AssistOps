@@ -15,6 +15,7 @@ from assistops.embeddings import OpenAIEmbeddings
 from assistops.events import EventInput
 from assistops.generation import structured_response
 from assistops.retrieval import Retriever
+from assistops.tracing import traced
 
 logger = structlog.get_logger()
 PROMPT_VERSION = "rag-v1"
@@ -151,6 +152,7 @@ class RagProcessor:
         self.settings = settings
         self.generator = OpenAIGenerator(settings)
 
+    @traced("retrieve")
     def retrieve(self, question: str, tenant: str, roles: set[str]):
         # Own clients inside the thread so cancellation never closes an active HTTP client.
         embedder = OpenAIEmbeddings(self.settings, self.settings.rag_embedding_cache, attempts=1)
@@ -165,6 +167,7 @@ class RagProcessor:
             retriever.close()
             embedder.close()
 
+    @traced("rag")
     async def __call__(self, event: EventInput) -> dict:
         started = time.monotonic()
         roles = self.settings.rag_user_roles.get(event.tenant_id, {}).get(
