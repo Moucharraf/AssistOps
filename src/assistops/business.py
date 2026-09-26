@@ -114,7 +114,9 @@ class BusinessTools:
                    WHERE e.tenant_id = %s AND e.connector_id = %s AND e.source = %s
                      AND e.payload->>'user_id' = %s AND e.payload->>'conversation_id' = %s
                      AND p.arguments->>'invoice_id' = %s AND p.event_id <> %s
-                     AND p.status = 'pending' AND p.expires_at > clock_timestamp() LIMIT 1""",
+                     AND ((p.status = 'pending' AND p.expires_at > clock_timestamp())
+                       OR EXISTS (SELECT 1 FROM ticket_deliveries d WHERE d.proposal_id = p.id
+                                  AND d.status IN ('pending', 'sending', 'uncertain'))) LIMIT 1""",
                 (
                     event.tenant_id,
                     connector,
@@ -141,6 +143,17 @@ class BusinessTools:
                 "subject": call.subject,
                 "description": call.description,
             }
+            if self.settings.ticket_backend == "jira":
+                if event.tenant_id != self.settings.jira_tenant_id:
+                    raise EventError(403, "jira_tenant_not_allowed")
+                # Bind the real destination to the content reviewed and approved by a human.
+                arguments["ticket_target"] = {
+                    "provider": "jira",
+                    "site": self.settings.jira_site,
+                    "cloud_id": self.settings.jira_cloud_id,
+                    "project": self.settings.jira_project_key,
+                    "issue_type_id": self.settings.jira_issue_type_id,
+                }
             digest = fingerprint(event_id, event.tenant_id, event.user_id, connector, arguments)
             inserted = connection.execute(
                 """INSERT INTO ticket_proposals
@@ -195,6 +208,44 @@ class BusinessTools:
                 "rejected": "La proposition a été refusée. Aucun ticket n’a été créé.",
                 "expired": "La proposition a expiré. Aucun ticket n’a été créé.",
             }[status]
+        if "ticket_target" in proposal["arguments"]:
+            delivery = connection.execute(
+                """SELECT status, issue_key, error_code FROM ticket_deliveries
+                   WHERE proposal_id = %s""",
+                (proposal["id"],),
+            ).fetchone()
+            result.update(ticket_provider="jira", data_origin="synthetic", origin="mixed")
+            if delivery:
+                delivery_status, issue_key, error_code = delivery
+                result.update(
+                    outcome={
+                        "pending": "ticket_pending",
+                        "sending": "ticket_pending",
+                        "succeeded": "ticket_created",
+                        "failed": "ticket_failed",
+                        "uncertain": "ticket_uncertain",
+                    }[delivery_status],
+                    business_action_executed=(
+                        None
+                        if delivery_status in {"sending", "uncertain"}
+                        else delivery_status == "succeeded"
+                    ),
+                    ticket_id=issue_key,
+                    delivery_status=delivery_status,
+                    error_code=error_code,
+                    ticket_url=(
+                        proposal["arguments"]["ticket_target"]["site"] + "/browse/" + issue_key
+                    )
+                    if issue_key
+                    else None,
+                )
+                result["message"] = {
+                    "pending": "Approbation enregistrée. Envoi vers Jira en attente.",
+                    "sending": "Envoi vers Jira en cours.",
+                    "succeeded": "Le ticket Jira a été créé après approbation.",
+                    "failed": "Jira n’a pas accepté la création du ticket.",
+                    "uncertain": "Résultat Jira incertain : vérification nécessaire avant reprise.",
+                }[delivery_status]
         return result
 
     def review(self, query, connector, correlation_id, decision=None):
@@ -257,21 +308,27 @@ class BusinessTools:
                         if invoice["customer_id"] != proposal["arguments"]["customer_id"]:
                             raise EventError(409, "proposal_changed")
                         args = proposal["arguments"]
-                        connection.execute(
-                            """INSERT INTO synthetic_tickets
-                               (id, proposal_id, tenant_id, customer_id,
-                                invoice_id, subject, description)
-                               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                            (
-                                uuid4(),
-                                proposal["id"],
-                                query.tenant_id,
-                                args["customer_id"],
-                                args["invoice_id"],
-                                args["subject"],
-                                args["description"],
-                            ),
-                        )
+                        if "ticket_target" in args:
+                            target = args["ticket_target"]
+                            if (
+                                self.settings.ticket_backend != "jira"
+                                or query.tenant_id != self.settings.jira_tenant_id
+                                or target
+                                != {
+                                    "provider": "jira",
+                                    "site": self.settings.jira_site,
+                                    "cloud_id": self.settings.jira_cloud_id,
+                                    "project": self.settings.jira_project_key,
+                                    "issue_type_id": self.settings.jira_issue_type_id,
+                                }
+                            ):
+                                raise EventError(409, "jira_destination_changed")
+                            connection.execute(
+                                "INSERT INTO ticket_deliveries (proposal_id) VALUES (%s)",
+                                (proposal["id"],),
+                            )
+                        else:
+                            self.create_synthetic_ticket(connection, proposal, query.tenant_id)
                     connection.execute(
                         """UPDATE ticket_proposals SET status = %s, decided_by = %s,
                            decided_at = clock_timestamp() WHERE id = %s""",
@@ -281,11 +338,17 @@ class BusinessTools:
                         status=status, decided_by=query.user_id if status != "expired" else None
                     )
                     answer = self.proposal_result(connection, proposal)
-                    # Simulator ticket, decision, job result and audit commit atomically.
+                    # Decision, outbox/simulator, job result and audit commit atomically.
                     connection.execute(
-                        """UPDATE event_jobs SET status = 'completed', result = %s,
+                        """UPDATE event_jobs SET status = %s, result = %s,
                            updated_at = clock_timestamp() WHERE event_id = %s""",
-                        (Jsonb(answer), proposal["event_id"]),
+                        (
+                            "awaiting_delivery"
+                            if answer["outcome"] == "ticket_pending"
+                            else "completed",
+                            Jsonb(answer),
+                            proposal["event_id"],
+                        ),
                     )
                     audit(
                         connection,
@@ -296,12 +359,30 @@ class BusinessTools:
                             "actor_id": query.user_id,
                             "decision_correlation_id": correlation_id,
                             "ticket_id": answer["ticket_id"],
-                            "origin": "synthetic",
+                            "origin": answer["origin"],
                         },
                     )
             elif decision is not None and proposal["status"] not in (decision, "expired"):
                 raise EventError(409, "decision_conflict")
             return self.proposal_result(connection, proposal)
+
+    @staticmethod
+    def create_synthetic_ticket(connection, proposal, tenant_id):
+        args = proposal["arguments"]
+        connection.execute(
+            """INSERT INTO synthetic_tickets
+               (id, proposal_id, tenant_id, customer_id, invoice_id, subject, description)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (
+                uuid4(),
+                proposal["id"],
+                tenant_id,
+                args["customer_id"],
+                args["invoice_id"],
+                args["subject"],
+                args["description"],
+            ),
+        )
 
 
 class ToolsProcessor:

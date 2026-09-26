@@ -45,6 +45,18 @@ class Settings(BaseSettings):
         str, dict[str, frozenset[Literal["customer", "support_agent", "ticket_approver"]]]
     ] = Field(default_factory=dict)
     approval_ttl_seconds: int = Field(default=900, ge=60, le=86400)
+    ticket_backend: Literal["synthetic", "jira"] = "synthetic"
+    jira_site: str = Field(default="", pattern=r"^(|https://[a-z0-9-]+\.atlassian\.net)$")
+    jira_project_key: str = Field(default="", pattern=r"^[A-Z][A-Z0-9_]*$|^$")
+    jira_issue_type_id: str = Field(default="", pattern=r"^[0-9]*$")
+    jira_tenant_id: str = ""
+    jira_cloud_id: str = Field(default="", pattern=r"^[a-fA-F0-9-]*$")
+    jira_email: str = Field(
+        default="", validation_alias=AliasChoices("ASSISTOPS_JIRA_EMAIL", "JIRA_EMAIL")
+    )
+    jira_api_token: SecretStr | None = Field(
+        default=None, validation_alias=AliasChoices("ASSISTOPS_JIRA_API_TOKEN", "JIRA_API_TOKEN")
+    )
     worker_poll_seconds: float = Field(default=1, ge=0.1, le=30)
     worker_timeout_seconds: float = Field(default=20, ge=0.1, le=300)
     worker_lease_seconds: int = Field(default=60, ge=20, le=600)
@@ -53,6 +65,12 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_worker(self):
+        if self.ticket_backend == "jira" and not all(
+            (self.jira_site, self.jira_project_key, self.jira_issue_type_id, self.jira_tenant_id)
+        ):
+            raise ValueError(
+                "Jira tickets require a site, project, issue type and authorized tenant"
+            )
         if self.environment == "production" and self.business_backend == "synthetic":
             raise ValueError("Synthetic business services cannot be enabled in production")
         if self.worker_lease_seconds < self.worker_timeout_seconds + 15:

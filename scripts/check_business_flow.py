@@ -52,6 +52,8 @@ def dispatch(
 def check_decision(client, query, job, choice):
     assert job["status"] == "awaiting_approval", job["result"].get("outcome")
     assert job["result"]["ticket_id"] is None
+    if "ticket_target" in job["result"]["proposal"]["arguments"]:
+        raise RuntimeError("Demo scripts must never approve real external ticket creation")
     review = {
         "tenant_id": "demo",
         "user_id": "reviewer-001",

@@ -90,7 +90,15 @@ class StatusQuery(ScopedInput):
 
 class JobStatus(BaseModel):
     receipt_id: UUID
-    status: Literal["pending", "processing", "awaiting_approval", "completed", "failed"]
+    status: Literal[
+        "pending",
+        "processing",
+        "awaiting_approval",
+        "awaiting_delivery",
+        "delivery_uncertain",
+        "completed",
+        "failed",
+    ]
     attempts: int
     result: dict | None
     last_error: str | None

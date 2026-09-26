@@ -61,7 +61,8 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Approbations | Décision signée, expiration, audit et création idempotente | Implémenté, tickets simulés |
 | Mémoire | Contexte privé entre messages et redémarrages | Implémenté, historique borné |
 | Intégrations | Webhooks n8n authentifiés, signature et suivi du résultat | Implémenté, environnement local |
-| Connecteurs externes | Slack, e-mail et API métier réelles | Prévu |
+| Connecteurs externes | Slack, e-mail et API CRM/facturation réelles | Prévu |
+| Tickets Jira Cloud | Envoi après approbation, suivi durable et rapprochement des résultats incertains | Implémenté, création et rejeu validés sur Jira Cloud |
 | Évaluation | Recall documentaire, tokens/coût estimé et latence RAG | Implémenté |
 | Tracing | Export des traces vers LangSmith | Prévu |
 
@@ -79,8 +80,8 @@ jamais l'approbation signée. Voir la [mémoire conversationnelle](docs/developm
 
 Les demandes structurées `tool_call` passent par le Tools Agent. La création d'un
 ticket simulé attend une décision signée d'un autre utilisateur habilité. Les
-données CRM et de facturation sont fictives ; aucun service métier externe n'est
-connecté. Le [guide de développement](docs/development.md#outils-métier-simulés-et-approbations)
+données CRM et de facturation sont fictives ; Jira peut être activé séparément pour
+les tickets. Le [guide de développement](docs/development.md#outils-métier-simulés-et-approbations)
 décrit les appels et le parcours d'approbation.
 
 ## Stack technique
@@ -91,6 +92,10 @@ décrit les appels et le parcours d'approbation.
 
 Le [guide n8n](docs/n8n.md) décrit le démarrage du workflow, le contrat HTTP,
 la gestion des identités et les limites du déploiement local.
+
+Le [guide Jira Cloud](docs/jira.md) décrit l’intégration optionnelle des tickets,
+la configuration des droits et le traitement des réponses incertaines. Les données
+CRM restent synthétiques ; l’activation Jira permet de créer de vrais tickets.
 
 ## Démarrage rapide
 

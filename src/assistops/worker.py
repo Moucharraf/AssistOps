@@ -14,6 +14,7 @@ from assistops.jobs import Exhausted, JobStore
 from assistops.observability import configure_logging
 from assistops.rag_agent import RagProcessor
 from assistops.supervisor import SupervisorProcessor
+from assistops.ticket_delivery import deliver_once
 
 logger = structlog.get_logger()
 Processor = Callable[[EventInput], Awaitable[dict]]
@@ -78,6 +79,8 @@ async def serve(settings: Settings, stop: asyncio.Event) -> None:
     while not stop.is_set():
         try:
             did_work = await run_once(store, processor)
+            delivered = await asyncio.to_thread(deliver_once, settings)
+            did_work = did_work or delivered
         except psycopg.Error as exc:
             # An uncertain commit is reconciled by the lease and durable job state.
             logger.warning("worker_storage_unavailable", error_type=type(exc).__name__)

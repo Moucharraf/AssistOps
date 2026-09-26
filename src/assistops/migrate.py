@@ -14,6 +14,7 @@ MIGRATIONS = [
     (5, "005_supervisor.sql"),
     (6, "006_conversation_memory.sql"),
     (7, "007_rate_limits.sql"),
+    (8, "008_jira_delivery.sql"),
 ]
 SCHEMA_VERSION = MIGRATIONS[-1][0]
 
