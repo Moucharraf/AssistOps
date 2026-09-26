@@ -78,8 +78,9 @@ Les réponses `202` portent `receipt_id`, `event_id`, `status: received` et `dup
 Erreurs : `401` signature absente/invalide/expirée, `403` identité non autorisée,
 `408` délai de lecture du corps dépassé,
 `409` identifiant réutilisé avec un autre contenu, `413` corps trop grand, `415`
-format non supporté, `422` JSON/enveloppe invalide, `503` configuration ou stockage
-indisponible. En cas de `503` ou timeout, retenter avec le même event_id et une
+format non supporté, `422` JSON/enveloppe invalide, `429` débit dépassé,
+`503` configuration ou stockage indisponible. En cas de `429`, respecter
+`Retry-After`. En cas de `503` ou timeout, retenter avec le même event_id et une
 signature fraîche. L'accusé de réception ne signifie pas qu'un agent a exécuté la demande.
 
 La signature utilise le secret du connecteur choisi dans `X-AssistOps-Connector` :
@@ -88,6 +89,81 @@ La signature utilise le secret du connecteur choisi dans `X-AssistOps-Connector`
 Placer le résultat dans `X-AssistOps-Signature` et envoyer le corps exact signé
 avec `Content-Type: application/json`. L'enveloppe est décrite dans le
 [contrat du MVP](mvp.md) et la documentation interactive `/docs`.
+
+## Limitation de débit
+
+Les quatre endpoints signés (`/v1/events`, `/v1/events/status`,
+`/v1/approvals/status` et `/v1/approvals/decide`) partagent une capacité par
+**connecteur, tenant et source**. Elle est consommée après vérification HMAC,
+avant le décodage JSON et l'exécution métier. Changer d'utilisateur, d'adresse IP
+ou d'endpoint ne crée pas une capacité supplémentaire pour le même connecteur.
+Un connecteur différent dispose de sa propre capacité.
+
+Le limiteur utilise un réservoir de jetons (*token bucket*) :
+
+| Variable | Défaut | Signification |
+| --- | --- | --- |
+| `ASSISTOPS_API_RATE_LIMIT_REQUESTS` | `120` | Capacité maximale du réservoir et taille de rafale |
+| `ASSISTOPS_API_RATE_LIMIT_PERIOD_SECONDS` | `60` | Durée nécessaire pour reconstituer cette capacité |
+
+Ces valeurs autorisent une rafale de 120 requêtes, puis reconstituent deux jetons
+par seconde. **Ce n'est pas un plafond strict de 120 requêtes sur chaque minute** :
+le réservoir se recharge pendant le trafic. Les seuils doivent être dimensionnés
+selon le polling, le trafic des connecteurs et la capacité réelle du déploiement.
+La configuration s'applique à tous les connecteurs ; les instances de l'API
+doivent utiliser les mêmes valeurs et la même base PostgreSQL.
+
+La migration 007 crée `connector_rate_limits`, avec une ligne par identité de
+connecteur. Une transaction verrouille uniquement sa ligne, calcule la recharge
+avec l'horloge PostgreSQL et consomme un jeton. Le solde survit aux redémarrages.
+Les demandes concurrentes ne peuvent pas consommer le même jeton. Aucun secret,
+corps de requête ou identifiant utilisateur n'est conservé dans cette table.
+
+Un réservoir vide produit `429`, le code JSON `rate_limited`, un `Retry-After`
+entier en secondes et `Cache-Control: no-store`. Aucune réception d'événement ni
+action métier n'a alors lieu. Le délai indique le temps de recharge nécessaire ;
+un autre appel concurrent peut consommer le jeton entre-temps.
+
+Le client doit attendre ce délai et renvoyer **le même événement avec une signature
+fraîche**. Les doublons authentifiés consomment eux aussi un jeton, puis retrouvent
+leur reçu grâce à l'idempotence existante. Une requête signée dont le JSON ou
+l'identité est invalide consomme sa capacité : le connecteur est déjà authentifié.
+Une signature invalide ne consomme aucun jeton et ne crée aucune ligne.
+
+Les scripts de démonstration respectent `Retry-After` avec au maximum cinq essais
+et une fenêtre d'attente de 30 secondes ; ils renouvellent la signature sans
+changer le corps. Au-delà, ils signalent l'erreur au lieu de réessayer indéfiniment.
+
+Si PostgreSQL échoue ou si l'attente d'un verrou dépasse le timeout, l'API retourne
+`503`, le code `rate_limit_unavailable` et `Retry-After: 1`. Elle ne poursuit pas
+le traitement avec un compteur local. Une admission déjà consommée n'est pas
+remboursée si le traitement suivant échoue. Les logs exposent le statut, le délai
+et le correlation ID, sans corps ni signature.
+
+Les endpoints de santé restent accessibles sans consommer cette capacité. Ce
+limiteur protège les opérations authentifiées ; la limitation du trafic anonyme,
+des connexions et des attaques volumétriques doit être assurée par le reverse
+proxy ou la passerelle en amont. Il ne limite pas la taille de la file du worker.
+Les lignes des anciens connecteurs restent en base après leur retrait de la
+configuration ; leur nettoyage relève de la maintenance du déploiement.
+
+Le Compose expose les deux variables. Après modification dans l'environnement,
+recréer l'API avec `docker compose up -d api`. Vérification HTTP sur le Compose
+local avec les valeurs par défaut, également exécutée en CI :
+
+```powershell
+.\.venv\Scripts\python.exe scripts/check_rate_limit.py
+```
+
+Ce script envoie une rafale de consultations d'un reçu inexistant avec le compte
+de démonstration. Il ne crée aucun job et n'appelle aucun modèle. Il consomme
+temporairement la capacité de `demo` ; exécuter les autres tests HTTP avant lui.
+Les tests PostgreSQL couvrent la concurrence, la recharge, l'isolation et la
+reprise dans une nouvelle instance d'API. Les tests HTTP couvrent les réponses
+`429`/`503`, les signatures invalides et le rejeu après recharge.
+
+Références : [HTTP 429 (RFC 6585)](https://www.rfc-editor.org/rfc/rfc6585#section-4),
+[verrous PostgreSQL](https://www.postgresql.org/docs/17/explicit-locking.html).
 
 ## Consulter le traitement
 

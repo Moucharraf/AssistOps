@@ -33,6 +33,11 @@ Headers : `X-AssistOps-Connector`, `X-AssistOps-Timestamp`, `X-AssistOps-Signatu
 de `timestamp + "." + corps brut`, avec secret par connecteur. Comparaison en temps
 constant, horodatage accepté à ±300 secondes, corps limité à 64 Kio.
 
+Les endpoints signés appliquent une limitation de débit commune par connecteur
+authentifié, partagée dans PostgreSQL. Un refus retourne `429` et `Retry-After`
+avant toute action. Une indisponibilité du limiteur retourne `503` et bloque
+le traitement. Configuration : [guide de développement](development.md#limitation-de-débit).
+
 Une réponse `202` signifie que l'événement, le travail en attente et l'audit sont
 persistés transactionnellement. Une contrainte unique `(tenant_id, source, event_id)`
 empêche les doublons ; réutiliser un identifiant avec un contenu différent retourne `409`.

@@ -6,6 +6,8 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       ASSISTOPS_ENVIRONMENT: local
+      ASSISTOPS_API_RATE_LIMIT_REQUESTS: ${ASSISTOPS_API_RATE_LIMIT_REQUESTS:-120}
+      ASSISTOPS_API_RATE_LIMIT_PERIOD_SECONDS: ${ASSISTOPS_API_RATE_LIMIT_PERIOD_SECONDS:-60}
       ASSISTOPS_DATABASE_URL: postgresql://assistops:assistops-local-only@postgres:5432/assistops
       ASSISTOPS_QDRANT_URL: http://qdrant:6333
       # Public demo credential, local use only. Never reuse outside this Compose.

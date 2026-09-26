@@ -111,7 +111,8 @@ Ce paramètre ne constitue pas une garantie de rétention nulle côté fournisse
 
 Le Supervisor et le RAG partagent le transport de génération. Le routeur limite
 sa sortie à 450 tokens, contre 600 pour le RAG. Ces limites bornent chaque requête ;
-elles ne constituent pas un rate limiting global ou par utilisateur.
+elles complètent la [limitation de débit de l'API](development.md#limitation-de-débit),
+qui s'applique par connecteur authentifié.
 
 `result.usage` et le log `rag_completed` contiennent modèle, version du prompt,
 collection, tokens, latence et coût estimé. Les logs ne contiennent ni question ni
@@ -154,7 +155,8 @@ Avant une mise en production, il reste notamment à valider :
 - La fidélité des réponses, les abstentions et les injections sur un jeu indépendant.
 - La gestion centralisée des identités, la révocation des droits et l'accès aux
   réponses historiques après un changement de permissions.
-- Le rate limiting, la rétention, les sauvegardes et les alertes opérationnelles.
+- La protection du trafic non authentifié en amont, la rétention, les sauvegardes
+  et les alertes opérationnelles.
 - Les dépendances verrouillées transitivement et la gestion des secrets déployés.
 - Conversations partagées, checkpoints par étape, API métier réelles et tracing LangSmith.
   La [mémoire privée du Supervisor](development.md#mémoire-conversationnelle) est

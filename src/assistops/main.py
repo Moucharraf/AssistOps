@@ -14,6 +14,7 @@ from assistops.config import Settings
 from assistops.events import EventError, router
 from assistops.health import dependency_status
 from assistops.observability import configure_logging
+from assistops.rate_limits import ConnectorRateLimiter
 from assistops.storage import EventStore
 
 logger = structlog.get_logger()
@@ -41,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.event_store = EventStore(settings)
+    app.state.rate_limiter = ConnectorRateLimiter(settings)
     app.include_router(router)
     app.include_router(approvals_router)
 
@@ -78,7 +80,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(EventError)
     async def event_error(request: Request, exc: EventError):
-        return error(request, exc.status, exc.code)
+        response = error(request, exc.status, exc.code)
+        if exc.retry_after is not None:
+            response.headers["Retry-After"] = str(exc.retry_after)
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     @app.exception_handler(HTTPException)
     async def http_error(request: Request, exc: HTTPException):

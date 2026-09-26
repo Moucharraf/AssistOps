@@ -31,6 +31,8 @@ jobs:
         run: python scripts/send_demo_event.py --wait
       - name: Synthetic business tools and human approval over HTTP
         run: python scripts/check_business_flow.py
+      - name: Authenticated connector rate limiting over HTTP
+        run: python scripts/check_rate_limit.py
       - name: Container logs
         if: failure()
         run: docker compose logs

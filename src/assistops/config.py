@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     dependency_timeout_seconds: float = Field(default=3.0, ge=0.1, le=30)
     webhook_connectors: dict[str, Connector] = Field(default_factory=dict)
     webhook_body_timeout_seconds: float = Field(default=10, ge=0.1, le=30)
+    api_rate_limit_requests: int = Field(default=120, ge=1, le=100000)
+    api_rate_limit_period_seconds: int = Field(default=60, ge=1, le=3600)
     worker_processor: Literal["disabled", "demo", "rag", "supervisor"] = "disabled"
     rag_model: Literal["gpt-4.1-mini-2025-04-14"] = "gpt-4.1-mini-2025-04-14"
     # Resolve permissions from trusted configuration, never from message content.

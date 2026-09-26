@@ -1,34 +1,18 @@
 """Exercise synthetic business operations over HTTP, including a simulated human decision."""
 
 import argparse
-import hashlib
-import hmac
 import json
 import time
 from pathlib import Path
 from uuid import uuid4
 
 import httpx
+from demo_http import post as signed_post
 
 
 def post(client, path, payload):
     body = json.dumps(payload).encode()
-    timestamp = str(int(time.time()))
-    signature = hmac.new(
-        b"assistops-local-webhook-secret-32-chars",
-        timestamp.encode() + b"." + body,
-        hashlib.sha256,
-    ).hexdigest()
-    response = client.post(
-        path,
-        content=body,
-        headers={
-            "Content-Type": "application/json",
-            "X-AssistOps-Connector": "demo",
-            "X-AssistOps-Timestamp": timestamp,
-            "X-AssistOps-Signature": "v1=" + signature,
-        },
-    )
+    response = signed_post(client, path, body)
     response.raise_for_status()
     return response.json()
 

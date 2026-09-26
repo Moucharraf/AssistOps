@@ -42,6 +42,8 @@ def webhook_app(app):
         "demo": Connector(secret=SECRET, tenant_id="demo", allowed_user_ids={"user-001"})
     }
     app.state.event_store = Mock()
+    app.state.rate_limiter = Mock()
+    app.state.rate_limiter.consume.return_value = None
     app.state.event_store.accept.return_value = Receipt(
         receipt_id=uuid4(), event_id="evt-001", duplicate=False
     )

@@ -48,6 +48,7 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Domaine | Capacité | Disponibilité |
 | --- | --- | --- |
 | Réception | Webhooks HMAC-SHA256, contrôle des identités, validation des entrées | Implémenté |
+| Protection API | Limitation de débit par connecteur, partagée via PostgreSQL | Implémenté |
 | Fiabilité | Persistance transactionnelle, idempotence et audit de réception | Implémenté |
 | Observabilité | Logs JSON, correlation IDs, contrôles de santé | Implémenté |
 | Développement | Docker Compose, migrations, tests et workflow GitHub Actions | Implémenté |
@@ -123,7 +124,8 @@ sur la stack conteneurisée.
 
 Les signatures et corps de requête ne sont pas journalisés. Les secrets sont
 fournis par configuration ; `.env` est exclu de Git et des images Docker.
-Le rate limiting, les politiques de rétention, la rotation des secrets et les
+Le débit des endpoints signés est limité par connecteur authentifié, avec réponses
+`429` et `Retry-After`. Les politiques de rétention, la rotation des secrets et les
 contrôles métier complémentaires font partie des travaux de préparation à la production.
 
 La recherche obtient un Recall@5 documentaire de **96,875 %** sur les 16 questions

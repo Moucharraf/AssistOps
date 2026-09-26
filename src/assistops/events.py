@@ -97,9 +97,10 @@ class JobStatus(BaseModel):
 
 
 class EventError(Exception):
-    def __init__(self, status: int, code: str):
+    def __init__(self, status: int, code: str, *, retry_after: int | None = None):
         self.status = status
         self.code = code
+        self.retry_after = retry_after
 
 
 def verify_signature(secret: str, timestamp: str, signature: str, body: bytes) -> None:
@@ -140,6 +141,13 @@ def signed_request_schema(model):
         return {key: inline(item) for key, item in value.items() if key != "discriminator"}
 
     return {
+        "responses": {
+            "429": {
+                "description": "Connector rate limit exceeded; retry after the indicated delay.",
+                "headers": {"Retry-After": {"schema": {"type": "integer", "minimum": 1}}},
+            },
+            "503": {"description": "Required storage or configuration is unavailable."},
+        },
         "requestBody": {
             "required": True,
             "content": {"application/json": {"schema": inline(schema)}},
@@ -224,6 +232,17 @@ async def authenticated_input(request: Request, schema):
         headers["X-AssistOps-Signature"],
         bytes(body),
     )
+    # Only a verified connector can consume its bucket, including malformed signed requests.
+    try:
+        retry_after = await run_in_threadpool(
+            request.app.state.rate_limiter.consume, connector_id, connector
+        )
+    except psycopg.Error as exc:
+        logger.warning("rate_limit_storage_unavailable", error_type=type(exc).__name__)
+        raise EventError(503, "rate_limit_unavailable", retry_after=1) from exc
+    if retry_after is not None:
+        logger.info("request_rate_limited", retry_after=retry_after)
+        raise EventError(429, "rate_limited", retry_after=retry_after)
     try:
         data = json.loads(body.decode("utf-8"), object_pairs_hook=unique_object)
         event = schema.model_validate(data)

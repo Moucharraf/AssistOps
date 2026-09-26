@@ -1,33 +1,17 @@
 """Send a signed local demo event twice and verify its durable receipt."""
 
 import argparse
-import hashlib
-import hmac
 import json
 import time
 from uuid import uuid4
 
 import httpx
+from demo_http import post
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--wait", action="store_true", help="Wait for the worker result")
 parser.add_argument("--processor", choices=["demo", "rag"], default="demo")
 args = parser.parse_args()
-
-
-def signed_headers(payload):
-    timestamp = str(int(time.time()))
-    signature = hmac.new(
-        b"assistops-local-webhook-secret-32-chars",
-        timestamp.encode() + b"." + payload,
-        hashlib.sha256,
-    ).hexdigest()
-    return {
-        "Content-Type": "application/json",
-        "X-AssistOps-Connector": "demo",
-        "X-AssistOps-Timestamp": timestamp,
-        "X-AssistOps-Signature": "v1=" + signature,
-    }
 
 
 body = json.dumps(
@@ -40,10 +24,9 @@ body = json.dumps(
         "message": "Comment contester ma facture INV-001 ?",
     }
 ).encode()
-headers = signed_headers(body)
 with httpx.Client(base_url="http://localhost:8000", timeout=15) as client:
-    first = client.post("/v1/events", content=body, headers=headers)
-    second = client.post("/v1/events", content=body, headers=headers)
+    first = post(client, "/v1/events", body)
+    second = post(client, "/v1/events", body)
     first.raise_for_status()
     second.raise_for_status()
     assert first.status_code == second.status_code == 202
@@ -62,7 +45,7 @@ with httpx.Client(base_url="http://localhost:8000", timeout=15) as client:
         ).encode()
         deadline = time.monotonic() + 60
         while time.monotonic() < deadline:
-            status = client.post("/v1/events/status", content=query, headers=signed_headers(query))
+            status = post(client, "/v1/events/status", query)
             status.raise_for_status()
             state = status.json()
             if state["status"] in ("completed", "failed"):

@@ -1,8 +1,6 @@
 """Explicit paid smoke checks against the local RAG stack and synthetic corpus."""
 
 import argparse
-import hashlib
-import hmac
 import json
 import time
 from datetime import UTC, datetime
@@ -10,21 +8,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import httpx
-
-
-def headers(body):
-    timestamp = str(int(time.time()))
-    signature = hmac.new(
-        b"assistops-local-webhook-secret-32-chars",
-        timestamp.encode() + b"." + body,
-        hashlib.sha256,
-    ).hexdigest()
-    return {
-        "Content-Type": "application/json",
-        "X-AssistOps-Connector": "demo",
-        "X-AssistOps-Timestamp": timestamp,
-        "X-AssistOps-Signature": "v1=" + signature,
-    }
+from demo_http import post
 
 
 def main():
@@ -58,7 +42,7 @@ def main():
                     "message": question["question"],
                 }
             ).encode()
-            response = client.post("/v1/events", content=body, headers=headers(body))
+            response = post(client, "/v1/events", body)
             response.raise_for_status()
             receipt = response.json()["receipt_id"]
             query = json.dumps(
@@ -71,7 +55,7 @@ def main():
             ).encode()
             deadline = time.monotonic() + 60
             while time.monotonic() < deadline:
-                response = client.post("/v1/events/status", content=query, headers=headers(query))
+                response = post(client, "/v1/events/status", query)
                 response.raise_for_status()
                 state = response.json()
                 if state["status"] in {"completed", "failed"}:
