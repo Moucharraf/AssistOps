@@ -44,7 +44,8 @@ class EventStore:
         )
 
     def accept(self, event: EventInput, connector_id: str, correlation_id: str) -> Receipt:
-        payload = event.model_dump()
+        # Preserve hashes of events accepted before optional tool calls were introduced.
+        payload = event.model_dump(exclude_none=True)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         fingerprint = hashlib.sha256(canonical.encode()).hexdigest()
         receipt_id = uuid4()

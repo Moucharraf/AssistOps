@@ -167,7 +167,9 @@ Avant une mise en production, il reste notamment à valider :
   réponses historiques après un changement de permissions.
 - Le rate limiting, la rétention, les sauvegardes et les alertes opérationnelles.
 - Les dépendances verrouillées transitivement et la gestion des secrets déployés.
-- LangGraph, mémoire conversationnelle, outils métier, HITL et tracing LangSmith.
+- LangGraph, mémoire conversationnelle, API métier réelles et tracing LangSmith.
+  Les outils simulés et la validation humaine via API sont décrits dans le
+  [guide de développement](development.md#outils-métier-simulés-et-approbations).
 
 Les timeouts HTTP bornent les opérations réseau. La génération est asynchrone et
 annulable ; une recherche synchrone déjà lancée dans un thread peut finir après

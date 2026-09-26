@@ -68,3 +68,17 @@ Depuis la racine du dépôt, sans Docker, sans clé API et sans appel réseau :
 
 Le résultat de validation indique les nombres de documents et de questions.
 Il ne constitue pas un résultat de recherche ni une mesure de performance.
+
+## Données métier du simulateur
+
+Le fichier [business_fixture.json](../src/assistops/business_fixture.json) contient
+trois profils et trois factures **entièrement synthétiques**. Il est embarqué dans
+le paquet pour que le simulateur fonctionne aussi dans Docker. Les adresses
+utilisent le domaine réservé `.invalid` ; aucun profil ou montant ne provient
+d'un client réel. Les montants sont exprimés en centimes entiers (`amount_minor`).
+
+Deux tenants partagent volontairement les identifiants `user-001` et `INV-001`,
+avec des valeurs différentes, pour tester l'isolation. `INV-002` appartient à un
+autre client du tenant `demo`, pour vérifier les droits de propriété.
+Ces enregistrements sont distincts du corpus Qdrant et ne sont pas indexés.
+Les tickets de test sont persistés dans la table `synthetic_tickets`.

@@ -1,4 +1,4 @@
-# Contrat du MVP — réception livrée, traitement métier à implémenter
+# Périmètre du MVP
 
 ## Premier parcours
 
@@ -34,8 +34,9 @@ constant, horodatage accepté à ±300 secondes, corps limité à 64 Kio.
 Une réponse `202` signifie que l'événement, le travail en attente et l'audit sont
 persistés transactionnellement. Une contrainte unique `(tenant_id, source, event_id)`
 empêche les doublons ; réutiliser un identifiant avec un contenu différent retourne `409`.
-Le reçu est stable après redémarrage. Le worker exécute le processeur démo ou le
-RAG Agent, sans action métier. Le statut et son résultat sont accessibles via
+Le reçu est stable après redémarrage. Le worker traite les appels métier structurés
+avec le Tools Agent ; les autres messages utilisent le processeur démo ou RAG.
+Les opérations métier sont simulées. Le statut et le résultat sont accessibles via
 `POST /v1/events/status`, avec une requête signée et limitée à l'identité d'origine.
 
 ## Agents et approbation
@@ -58,8 +59,9 @@ pas à garantir ensemble une exécution unique après crash.
 
 ## Critères E2E du parcours cible
 
-Les cas documentaires et les reprises du worker sont déjà testés. Le parcours
-complet avec outils métier et approbations reste à implémenter.
+Les cas documentaires, les reprises du worker et le parcours structuré avec
+outils simulés et approbations sont testés. Le routage en langage naturel par
+LangGraph et les adaptateurs métier réels restent à implémenter.
 
 1. Une question documentaire obtient une réponse avec sources autorisées.
 2. L'absence de source est signalée.
@@ -85,7 +87,8 @@ Les tests HMAC, concurrence, retries, timeouts et limites complètent ces critè
    Ingestion, embeddings et recherche Qdrant filtrée livrés en CLI.
    RAG Agent avec citations vérifiées, abstention et connexion au worker livré.
    Configuration et limites : [guide RAG](rag-agent.md).
-4. **Agents et métier** : LangGraph, outils simulés et approbations persistées.
+4. **Métier simulé livré** : Tools Agent, lectures autorisées, ticket après approbation
+   persistée, expiration et idempotence. Le Supervisor LangGraph reste à implémenter.
 5. **Intégration** : n8n, connecteurs réels, LangSmith, limites et E2E.
 
 La clé OpenAI configure les embeddings et les réponses générées ; les modèles sont

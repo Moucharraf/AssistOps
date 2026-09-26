@@ -2,6 +2,7 @@ import asyncio
 from unittest.mock import AsyncMock
 
 from assistops.health import check_postgres, check_qdrant, dependency_status
+from assistops.migrate import SCHEMA_VERSION
 
 
 def test_dependency_timeout_is_bounded(settings, monkeypatch):
@@ -16,7 +17,7 @@ def test_dependency_timeout_is_bounded(settings, monkeypatch):
 
 def test_postgres_runs_a_real_query(settings, monkeypatch):
     cursor = AsyncMock()
-    cursor.fetchone.return_value = (3,)
+    cursor.fetchone.return_value = (SCHEMA_VERSION,)
     connection = AsyncMock()
     connection.cursor = lambda: cursor
     connection.__aenter__.return_value = connection
@@ -25,7 +26,7 @@ def test_postgres_runs_a_real_query(settings, monkeypatch):
     monkeypatch.setattr("assistops.health.psycopg.AsyncConnection.connect", connect)
     asyncio.run(check_postgres(settings))
     cursor.execute.assert_awaited_once_with(
-        "SELECT version FROM schema_migrations WHERE version = %s", (3,)
+        "SELECT version FROM schema_migrations WHERE version = %s", (SCHEMA_VERSION,)
     )
 
 

@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     rag_user_roles: dict[str, dict[str, frozenset[str]]] = Field(default_factory=dict)
     rag_daily_attempts: int = Field(default=5, ge=0, le=20)
     rag_embedding_cache: Path = Path(".cache/embeddings")
+    business_backend: Literal["disabled", "synthetic"] = "disabled"
+    business_user_roles: dict[
+        str, dict[str, frozenset[Literal["customer", "support_agent", "ticket_approver"]]]
+    ] = Field(default_factory=dict)
+    approval_ttl_seconds: int = Field(default=900, ge=60, le=86400)
     worker_poll_seconds: float = Field(default=1, ge=0.1, le=30)
     worker_timeout_seconds: float = Field(default=20, ge=0.1, le=300)
     worker_lease_seconds: int = Field(default=60, ge=20, le=600)
@@ -47,6 +52,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_worker(self):
+        if self.environment == "production" and self.business_backend == "synthetic":
+            raise ValueError("Synthetic business services cannot be enabled in production")
         if self.worker_lease_seconds < self.worker_timeout_seconds + 15:
             raise ValueError("Worker lease must exceed processing timeout by at least 15 seconds")
         if self.environment == "production" and self.worker_processor == "demo":

@@ -9,7 +9,9 @@ services:
       ASSISTOPS_DATABASE_URL: postgresql://assistops:assistops-local-only@postgres:5432/assistops
       ASSISTOPS_QDRANT_URL: http://qdrant:6333
       # Public demo credential, local use only. Never reuse outside this Compose.
-      ASSISTOPS_WEBHOOK_CONNECTORS: '{"demo":{"secret":"assistops-local-webhook-secret-32-chars","tenant_id":"demo","allowed_user_ids":["user-001"],"source":"webhook"}}'
+      ASSISTOPS_WEBHOOK_CONNECTORS: '{"demo":{"secret":"assistops-local-webhook-secret-32-chars","tenant_id":"demo","allowed_user_ids":["user-001","user-002","reviewer-001"],"source":"webhook"}}'
+      ASSISTOPS_BUSINESS_BACKEND: synthetic
+      ASSISTOPS_BUSINESS_USER_ROLES: '{"demo":{"user-001":["customer"],"user-002":["customer"],"reviewer-001":["ticket_approver"]}}'
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -31,6 +33,8 @@ services:
       ASSISTOPS_ENVIRONMENT: local
       ASSISTOPS_DATABASE_URL: postgresql://assistops:assistops-local-only@postgres:5432/assistops
       ASSISTOPS_WORKER_PROCESSOR: demo
+      ASSISTOPS_BUSINESS_BACKEND: synthetic
+      ASSISTOPS_BUSINESS_USER_ROLES: '{"demo":{"user-001":["customer"],"user-002":["customer"],"reviewer-001":["ticket_approver"]}}'
     depends_on:
       migrate:
         condition: service_completed_successfully

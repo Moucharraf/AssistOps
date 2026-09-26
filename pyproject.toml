@@ -24,7 +24,7 @@ dev = ["pytest==9.0.3", "ruff==0.15.12"]
 where = ["src"]
 
 [tool.setuptools.package-data]
-assistops = ["migrations/*.sql"]
+assistops = ["migrations/*.sql", "business_fixture.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

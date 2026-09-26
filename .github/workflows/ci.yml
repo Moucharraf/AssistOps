@@ -29,6 +29,8 @@ jobs:
         run: pytest -m integration
       - name: Signed webhook, replay and demo worker over HTTP
         run: python scripts/send_demo_event.py --wait
+      - name: Synthetic business tools and human approval over HTTP
+        run: python scripts/check_business_flow.py
       - name: Container logs
         if: failure()
         run: docker compose logs

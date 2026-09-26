@@ -1,0 +1,14 @@
+{
+  "origin": "synthetic",
+  "purpose": "Fictional CRM and invoice records for ownership, tenant isolation and approval tests. No customer data or external source.",
+  "users": [
+    {"tenant_id": "demo", "user_id": "user-001", "name": "Camille Exemple", "email": "camille@example.invalid"},
+    {"tenant_id": "demo", "user_id": "user-002", "name": "Alex Exemple", "email": "alex@example.invalid"},
+    {"tenant_id": "boreal", "user_id": "user-001", "name": "Sam Fictif", "email": "sam@example.invalid"}
+  ],
+  "invoices": [
+    {"tenant_id": "demo", "invoice_id": "INV-001", "customer_id": "user-001", "amount_minor": 4900, "currency": "EUR", "status": "unpaid", "issued_on": "2026-09-01"},
+    {"tenant_id": "demo", "invoice_id": "INV-002", "customer_id": "user-002", "amount_minor": 9900, "currency": "EUR", "status": "paid", "issued_on": "2026-09-01"},
+    {"tenant_id": "boreal", "invoice_id": "INV-001", "customer_id": "user-001", "amount_minor": 19900, "currency": "EUR", "status": "overdue", "issued_on": "2026-08-01"}
+  ]
+}

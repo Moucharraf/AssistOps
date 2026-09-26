@@ -103,7 +103,7 @@ avec `Content-Type: application/json`. L'enveloppe est décrite dans le
 ```
 
 Remplacer `receipt_id` par le reçu de l'envoi initial. La réponse expose `status`
-(`pending`, `processing`, `completed`, `failed`), `attempts`, `result` et `last_error`.
+(`pending`, `processing`, `awaiting_approval`, `completed`, `failed`), `attempts`, `result` et `last_error`.
 Un reçu absent ou appartenant à un autre utilisateur/connecteur retourne `404`.
 Le statut `completed` signifie ici que le **processeur de démonstration** a terminé,
 pas qu'une opération métier a eu lieu. Il produit `business_action_executed: false`.
@@ -173,6 +173,110 @@ L'ingestion OpenAI et la recherche Qdrant sont disponibles en CLI : voir le
 [guide détaillé](retrieval.md). Le [RAG Agent](rag-agent.md) ajoute les réponses sourcées et le mode worker `rag`.
 Pour les tests Qdrant, définir `ASSISTOPS_TEST_QDRANT_URL=http://localhost:6333`.
 Ces tests utilisent des vecteurs fictifs et ne consomment aucun crédit OpenAI.
+
+## Outils métier simulés et approbations
+
+Les événements contenant `tool_call` sont traités par le Tools Agent avant le
+processeur démo ou RAG. Ce composant est déterministe : il valide et exécute un
+appel structuré. Le choix de l'outil depuis une demande en langage naturel sera
+ajouté avec le Supervisor LangGraph. Aucun appel OpenAI n'est nécessaire ici.
+
+Le Compose local active `ASSISTOPS_BUSINESS_BACKEND=synthetic`. Hors Compose,
+le backend est désactivé par défaut ; son activation est interdite avec
+`ASSISTOPS_ENVIRONMENT=production`. Les rôles proviennent exclusivement de
+`ASSISTOPS_BUSINESS_USER_ROLES`, configuré de façon identique pour l'API et le worker.
+
+| Rôle | Droits |
+| --- | --- |
+| `customer` | Lire son profil et ses factures ; proposer un ticket pour sa facture |
+| `support_agent` | Lire les profils et factures du tenant ; proposer un ticket |
+| `ticket_approver` | Examiner et décider les propositions du tenant et du connecteur |
+
+Un approbateur ne peut jamais approuver sa propre demande, même s'il possède
+plusieurs rôles. Ces rôles sont distincts des rôles documentaires du RAG.
+Une facture inaccessible et une facture inexistante produisent le même refus.
+
+Exemple de corps pour `POST /v1/events`, à signer comme les autres webhooks :
+
+```json
+{
+  "event_id": "ticket-demo-001",
+  "tenant_id": "demo",
+  "user_id": "user-001",
+  "conversation_id": "conversation-demo",
+  "source": "webhook",
+  "message": "Je souhaite contester une ligne de ma facture.",
+  "tool_call": {
+    "name": "create_ticket",
+    "invoice_id": "INV-001",
+    "subject": "Contestation de facture",
+    "description": "Le montant d'une ligne semble incorrect."
+  }
+}
+```
+
+Les autres appels sont `{"name":"get_user"}` (profil du demandeur) et
+`{"name":"get_invoice","invoice_id":"INV-001"}`. Un agent support peut fournir
+`target_user_id` à `get_user`. Ni le texte de la demande ni les arguments ne peuvent
+attribuer un rôle, changer de tenant ou approuver une action.
+
+Pour une création, le statut du job devient `awaiting_approval`. Son résultat
+contient `proposal.id`, les arguments exacts, leur empreinte `arguments_hash` et
+`expires_at`. **Aucun ticket n'existe à ce stade.** Les arguments ne sont pas
+modifiables ; une correction nécessite un nouvel événement et une nouvelle décision.
+
+L'approbateur consulte `POST /v1/approvals/status` avec un corps signé contenant
+`tenant_id`, `user_id`, `source` et `proposal_id`. Il décide ensuite via
+`POST /v1/approvals/decide` avec le même contexte, l'empreinte affichée et :
+
+```json
+{
+  "tenant_id": "demo",
+  "user_id": "reviewer-001",
+  "source": "webhook",
+  "proposal_id": "UUID de la proposition examinée",
+  "arguments_hash": "empreinte de 64 caractères retournée lors de la consultation",
+  "decision": "approved"
+}
+```
+
+`decision` accepte `approved` ou `rejected`. Le connecteur et la source doivent
+être ceux de la demande initiale. La signature atteste l'identité transmise par le
+connecteur ; ce dernier doit authentifier la personne qui prend la décision.
+Les identifiants publics du Compose servent uniquement aux tests locaux. Il n'y
+a pas encore d'interface utilisateur ou de bouton Slack pour cette validation.
+
+La validité est de 15 minutes par défaut (`ASSISTOPS_APPROVAL_TTL_SECONDS`). Une
+proposition périmée devient `expired` lors de sa consultation ou d'une tentative
+de décision, sans création de ticket. Sans consultation, le job peut encore
+afficher `awaiting_approval` : il n'existe pas de tâche de nettoyage périodique.
+
+La décision verrouille la proposition et vérifie de nouveau les droits du
+demandeur. Le ticket simulé, la décision, le résultat du job et l'audit sont
+enregistrés dans une seule transaction PostgreSQL. Une décision répétée retourne
+le même ticket ; une décision contradictoire renvoie `409`. Une empreinte différente
+renvoie également `409`. Un refus et une expiration terminent le job avec un
+résultat explicite, sans ticket. Une reprise après crash réutilise la proposition
+existante sans prolonger sa validité.
+
+Les résultats portent `origin: synthetic` et `business_action_executed: false`.
+Après création locale, `simulated_action_executed: true` et `ticket_id` désignent
+le ticket dans `synthetic_tickets`. Aucun CRM, service de facturation ou logiciel
+de support externe n'est appelé. La garantie transactionnelle du simulateur ne
+s'étend pas à un futur fournisseur distant : son adaptateur devra gérer les
+clés d'idempotence, les timeouts et la réconciliation.
+
+Vérification HTTP automatisée, également exécutée en CI :
+
+```powershell
+.\.venv\Scripts\python.exe scripts/check_business_flow.py
+```
+
+Le script utilise les comptes fictifs `user-001` et `reviewer-001`. **Il simule
+explicitement la décision humaine pour le test** ; le worker ne s'auto-approuve
+jamais. Il vérifie les lectures autorisées, le refus d'une autre facture, l'attente,
+l'approbation, le rejet et les doublons. Les tests PostgreSQL vérifient aussi la
+concurrence, l'expiration, la révocation des droits et le rollback de l'audit.
 
 ## Structure du dépôt
 

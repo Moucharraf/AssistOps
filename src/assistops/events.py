@@ -27,10 +27,42 @@ class ScopedInput(BaseModel):
     source: Literal["webhook", "slack", "email"]
 
 
+class ToolArguments(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class GetUser(ToolArguments):
+    name: Literal["get_user"]
+    target_user_id: Identifier | None = None
+
+
+class GetInvoice(ToolArguments):
+    name: Literal["get_invoice"]
+    invoice_id: Identifier
+
+
+class CreateTicket(GetInvoice):
+    name: Literal["create_ticket"]
+    subject: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("subject", "description")
+    @classmethod
+    def valid_text(cls, value: str) -> str:
+        if not value.strip() or "\x00" in value:
+            raise ValueError("Ticket text must be nonblank and contain no null characters")
+        value.encode("utf-8")
+        return value
+
+
+ToolCall = Annotated[GetUser | GetInvoice | CreateTicket, Field(discriminator="name")]
+
+
 class EventInput(ScopedInput):
     event_id: Identifier
     conversation_id: Identifier
     message: str = Field(min_length=1, max_length=16000)
+    tool_call: ToolCall | None = None
 
     @field_validator("message")
     @classmethod
@@ -58,7 +90,7 @@ class StatusQuery(ScopedInput):
 
 class JobStatus(BaseModel):
     receipt_id: UUID
-    status: Literal["pending", "processing", "completed", "failed"]
+    status: Literal["pending", "processing", "awaiting_approval", "completed", "failed"]
     attempts: int
     result: dict | None
     last_error: str | None
@@ -92,6 +124,33 @@ def unique_object(pairs):
     return result
 
 
+def signed_request_schema(model):
+    """Describe raw signed bodies without letting FastAPI parse them before HMAC verification."""
+    schema = model.model_json_schema()
+    definitions = schema.pop("$defs", {})
+
+    def inline(value):
+        if isinstance(value, list):
+            return [inline(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+        if "$ref" in value:
+            return inline(definitions[value["$ref"].rsplit("/", 1)[-1]])
+        # Inline union branches instead of publishing unresolved JSON Schema references.
+        return {key: inline(item) for key, item in value.items() if key != "discriminator"}
+
+    return {
+        "requestBody": {
+            "required": True,
+            "content": {"application/json": {"schema": inline(schema)}},
+        },
+        "parameters": [
+            {"name": name, "in": "header", "required": True, "schema": {"type": "string"}}
+            for name in ("X-AssistOps-Connector", "X-AssistOps-Timestamp", "X-AssistOps-Signature")
+        ],
+    }
+
+
 @router.post(
     "/v1/events",
     status_code=202,
@@ -99,16 +158,7 @@ def unique_object(pairs):
     tags=["events"],
     summary="Accept a signed event into the durable inbox",
     description="Persists the event and pending job. Does not execute business actions.",
-    openapi_extra={
-        "requestBody": {
-            "required": True,
-            "content": {"application/json": {"schema": EventInput.model_json_schema()}},
-        },
-        "parameters": [
-            {"name": name, "in": "header", "required": True, "schema": {"type": "string"}}
-            for name in ("X-AssistOps-Connector", "X-AssistOps-Timestamp", "X-AssistOps-Signature")
-        ],
-    },
+    openapi_extra=signed_request_schema(EventInput),
 )
 async def receive_event(request: Request) -> Receipt:
     event, connector_id = await authenticated_input(request, EventInput)
@@ -126,16 +176,7 @@ async def receive_event(request: Request) -> Receipt:
     response_model=JobStatus,
     tags=["events"],
     summary="Read job status using a signed, identity-scoped query",
-    openapi_extra={
-        "requestBody": {
-            "required": True,
-            "content": {"application/json": {"schema": StatusQuery.model_json_schema()}},
-        },
-        "parameters": [
-            {"name": name, "in": "header", "required": True, "schema": {"type": "string"}}
-            for name in ("X-AssistOps-Connector", "X-AssistOps-Timestamp", "X-AssistOps-Signature")
-        ],
-    },
+    openapi_extra=signed_request_schema(StatusQuery),
 )
 async def event_status(request: Request) -> JobStatus:
     query, connector_id = await authenticated_input(request, StatusQuery)

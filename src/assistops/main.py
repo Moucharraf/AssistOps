@@ -9,6 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from assistops.approvals import router as approvals_router
 from assistops.config import Settings
 from assistops.events import EventError, router
 from assistops.health import dependency_status
@@ -41,6 +42,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.event_store = EventStore(settings)
     app.include_router(router)
+    app.include_router(approvals_router)
 
     def error(request: Request, status: int, code: str) -> JSONResponse:
         return JSONResponse(

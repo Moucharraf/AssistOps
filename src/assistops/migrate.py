@@ -6,7 +6,12 @@ from assistops.config import Settings
 from assistops.observability import configure_logging
 from assistops.storage import connect
 
-MIGRATIONS = [(1, "001_events.sql"), (2, "002_worker.sql"), (3, "003_rag_budget.sql")]
+MIGRATIONS = [
+    (1, "001_events.sql"),
+    (2, "002_worker.sql"),
+    (3, "003_rag_budget.sql"),
+    (4, "004_business.sql"),
+]
 SCHEMA_VERSION = MIGRATIONS[-1][0]
 
 

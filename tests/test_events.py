@@ -56,7 +56,7 @@ def test_signed_event_returns_receipt_after_storage(webhook_app):
     assert response.json()["status"] == "received"
     assert response.json()["duplicate"] is False
     event, connector, correlation = webhook_app.state.event_store.accept.call_args.args
-    assert event.model_dump() == PAYLOAD
+    assert event.model_dump(exclude_none=True) == PAYLOAD
     assert connector == "demo"
     assert correlation == response.headers["X-Correlation-ID"]
 

@@ -91,6 +91,8 @@ class JobStore:
             )
         )
         delay = min(60, self.settings.worker_retry_seconds * 2 ** (lease.attempt - 1))
+        if error is None and result.get("outcome") == "awaiting_approval":
+            status = "awaiting_approval"
         with connect(self.settings) as connection:
             changed = connection.execute(
                 """UPDATE event_jobs SET status = %s, result = %s, last_error = %s,
@@ -113,6 +115,7 @@ class JobStore:
                 "pending": "job_retry_scheduled",
                 "completed": "job_completed",
                 "failed": "job_failed",
+                "awaiting_approval": "job_awaiting_approval",
             }[status]
             audit(connection, lease.event_id, action, {"attempt": lease.attempt, "error": error})
         return True

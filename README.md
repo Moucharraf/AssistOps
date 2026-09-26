@@ -52,11 +52,12 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Observabilité | Logs JSON, correlation IDs, contrôles de santé | Implémenté |
 | Développement | Docker Compose, migrations, tests et workflow GitHub Actions | Implémenté |
 | Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, modes démo et RAG |
-| Orchestration | Supervisor LangGraph et Tools Agent | Prévu |
+| Orchestration | Supervisor LangGraph et routage en langage naturel | Prévu |
 | Réponses | RAG Agent, citations vérifiées, abstention et quota persistant | Implémenté |
 | Connaissances | Corpus synthétique réaliste, provenance et questions de référence | Disponible |
 | Recherche | Ingestion OpenAI, recherche Qdrant filtrée et passages sourcés | Implémenté en CLI |
-| Actions | Outils CRM/facturation/tickets et approbations humaines | Prévu |
+| Actions | Tools Agent : utilisateur, facture, proposition de ticket | Implémenté, services simulés |
+| Approbations | Décision signée, expiration, audit et création idempotente | Implémenté, tickets simulés |
 | Mémoire | Conversations persistées entre sessions | Prévu |
 | Intégrations | n8n, Slack, e-mail et API métier réelles | Prévu |
 | Évaluation | Recall documentaire, tokens/coût estimé et latence RAG | Implémenté |
@@ -66,6 +67,12 @@ Le worker propose un mode de démonstration et un mode RAG qui répond aux quest
 documentaires avec des citations vérifiées. Les résultats sont conservés dans
 PostgreSQL et consultables avec l'identité signée d'origine. Le RAG n'exécute
 pas encore d'action métier. Voir le [guide du RAG Agent](docs/rag-agent.md).
+
+Les demandes structurées `tool_call` passent par le Tools Agent. La création d'un
+ticket simulé attend une décision signée d'un autre utilisateur habilité. Les
+données CRM et de facturation sont fictives ; aucun service métier externe n'est
+connecté. Le [guide de développement](docs/development.md#outils-métier-simulés-et-approbations)
+décrit les appels et le parcours d'approbation.
 
 ## Stack technique
 

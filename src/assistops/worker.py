@@ -7,6 +7,7 @@ import psycopg
 import structlog
 from pydantic import ValidationError
 
+from assistops.business import ToolsProcessor
 from assistops.config import Settings
 from assistops.events import EventInput
 from assistops.jobs import Exhausted, JobStore
@@ -47,7 +48,8 @@ async def run_once(store: JobStore, processor: Processor) -> bool:
         else:
             try:
                 async with asyncio.timeout(store.settings.worker_timeout_seconds):
-                    result = await processor(event)
+                    handler = ToolsProcessor(store.settings) if event.tool_call else processor
+                    result = await handler(event)
                 if not isinstance(result, dict):
                     raise TypeError("Processor must return a dictionary")
             except TimeoutError:
