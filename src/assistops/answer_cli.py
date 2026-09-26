@@ -1,4 +1,4 @@
-"""Answer one question with server-configured identity and the shared daily budget."""
+"""Answer one question using server-configured documentary permissions."""
 
 import argparse
 import asyncio

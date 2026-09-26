@@ -24,7 +24,9 @@ de webhook ou une reprise après incident. Les API métier seront d'abord simul�
 
 Le tenant et l'identité sont vérifiés auprès du connecteur authentifié. Une identité
 dans le JSON ou suggérée par le modèle ne suffit pas. L'identifiant de conversation
-ne donne aucun droit ; la gestion de ses participants reste à implémenter.
+ne donne aucun droit. La mémoire est privée au tenant, connecteur, source,
+utilisateur et identifiant de conversation ; les conversations partagées ne sont
+pas implémentées.
 
 Headers : `X-AssistOps-Connector`, `X-AssistOps-Timestamp`, `X-AssistOps-Signature`,
 `X-Correlation-ID` optionnel. Signature : `v1=` suivi du HMAC-SHA256 hexadécimal
@@ -35,7 +37,8 @@ Une réponse `202` signifie que l'événement, le travail en attente et l'audit 
 persistés transactionnellement. Une contrainte unique `(tenant_id, source, event_id)`
 empêche les doublons ; réutiliser un identifiant avec un contenu différent retourne `409`.
 Le reçu est stable après redémarrage. Le worker traite les appels métier structurés
-avec le Tools Agent ; les autres messages utilisent le processeur démo ou RAG.
+avec le Tools Agent ; les autres messages utilisent le processeur configuré :
+démo, RAG ou Supervisor LangGraph.
 Les opérations métier sont simulées. Le statut et le résultat sont accessibles via
 `POST /v1/events/status`, avec une requête signée et limitée à l'identité d'origine.
 
@@ -60,8 +63,9 @@ pas à garantir ensemble une exécution unique après crash.
 ## Critères E2E du parcours cible
 
 Les cas documentaires, les reprises du worker et le parcours structuré avec
-outils simulés et approbations sont testés. Le routage en langage naturel par
-LangGraph et les adaptateurs métier réels restent à implémenter.
+outils simulés et approbations sont testés. Le routage LangGraph est testé avec
+un modèle simulé ; un contrôle OpenAI réel couvre lecture de facture et proposition
+de ticket. Les adaptateurs métier réels restent à implémenter.
 
 1. Une question documentaire obtient une réponse avec sources autorisées.
 2. L'absence de source est signalée.
@@ -81,14 +85,16 @@ Les tests HMAC, concurrence, retries, timeouts et limites complètent ces critè
 1. **Socle livré** : configuration, API, santé, logs, Docker et CI.
 2. **Réception durable livrée** : migrations, événements, HMAC, idempotence et audit.
    Le worker, les retries, la reprise par expiration de réservation et le statut
-   authentifié sont livrés avec les processeurs démo et RAG. Les reprises des
-   étapes internes LangGraph restent à implémenter avec les agents.
+   authentifié sont livrés avec les processeurs démo, RAG et Supervisor. Le plan
+   LangGraph et son contexte sont persistés ; les checkpoints par étape restent à implémenter.
 3. **RAG** : corpus synthétique et benchmark de référence livrés et documentés.
    Ingestion, embeddings et recherche Qdrant filtrée livrés en CLI.
    RAG Agent avec citations vérifiées, abstention et connexion au worker livré.
    Configuration et limites : [guide RAG](rag-agent.md).
 4. **Métier simulé livré** : Tools Agent, lectures autorisées, ticket après approbation
-   persistée, expiration et idempotence. Le Supervisor LangGraph reste à implémenter.
+   persistée, expiration et idempotence. Le Supervisor LangGraph route les demandes
+   documentaires, métier ou mixtes sur un parcours borné.
+   La mémoire privée conserve un contexte borné entre messages et redémarrages.
 5. **Intégration** : n8n, connecteurs réels, LangSmith, limites et E2E.
 
 La clé OpenAI configure les embeddings et les réponses générées ; les modèles sont

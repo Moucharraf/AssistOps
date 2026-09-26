@@ -2,7 +2,8 @@
 
 Le RAG Agent répond aux questions documentaires à partir de Qdrant. Il peut être
 appelé en CLI ou par le worker qui traite les webhooks signés. Son implémentation
-est indépendante de LangGraph : le Supervisor pourra l'appeler à l'étape suivante.
+est indépendante de LangGraph ; le [Supervisor](development.md#supervisor-langgraph)
+l'appelle pour les recherches documentaires et les demandes mixtes.
 
 Le corpus demeure **100 % synthétique** : procédures et politiques fictives pour
 tester sans exposer de données clients. Les exemples décrivent cette entreprise
@@ -14,15 +15,14 @@ fictive, pas des règles juridiques réelles. Aucun document externe n'a été a
 2. Le worker réserve le job avec son mécanisme existant de lease.
 3. Le RAG résout les rôles par `(tenant_id, user_id)` dans la configuration serveur.
    Un rôle écrit dans la question ne change jamais ces permissions.
-4. PostgreSQL réserve une tentative dans le compteur quotidien partagé.
-5. La recherche utilise une collection Qdrant déterminée pour cette demande et
+4. La recherche utilise une collection Qdrant déterminée pour cette demande et
    filtre les documents par tenant, rôles, statut et date UTC courante.
-6. Jusqu'à cinq documents et deux passages par document sont envisagés. Le contexte
+5. Jusqu'à cinq documents et deux passages par document sont envisagés. Le contexte
    effectivement envoyé est limité à 6 000 octets UTF-8 ; les passages qui dépassent
    ce volume sont omis, sans découper les preuves au milieu d'une phrase.
-7. `gpt-4.1-mini-2025-04-14` produit une réponse structurée avec au maximum trois
+6. `gpt-4.1-mini-2025-04-14` produit une réponse structurée avec au maximum trois
    affirmations, chacune accompagnée d'un identifiant de passage et d'un extrait exact.
-8. Python vérifie le schéma, l'existence du passage et la présence exacte de la
+7. Python vérifie le schéma, l'existence du passage et la présence exacte de la
    citation dans le contexte envoyé. Il construit lui-même les références et
    conserve le résultat dans PostgreSQL via le worker.
 
@@ -41,7 +41,6 @@ est correcte : la fidélité sémantique doit encore être évaluée humainement
 | `abstained` | Sources insuffisantes, citation invalide, refus fournisseur ou sortie incomplète |
 | `denied` | Aucun rôle documentaire configuré pour l'identité |
 | `rejected` | Question supérieure à 4 000 octets UTF-8 |
-| `budget_exhausted` | Quota quotidien de tentatives atteint |
 | `unavailable` | Clé absente ou échec de dépendance |
 
 Un job `completed` signifie que le traitement a terminé ; consulter `outcome` pour
@@ -66,6 +65,7 @@ permet de vérifier la syntaxe sans afficher les valeurs.
 Le Compose de base conserve le processeur démo pour la CI. Pour le mode RAG local :
 
 ```powershell
+$env:ASSISTOPS_AI_PROCESSOR = 'rag'
 docker compose -f compose.yaml -f compose.rag.yaml up --build --wait
 .\.venv\Scripts\python.exe scripts/send_demo_event.py --wait --processor rag
 ```
@@ -73,7 +73,6 @@ docker compose -f compose.yaml -f compose.rag.yaml up --build --wait
 L'override configure uniquement `demo/user-001` avec le rôle `customer`, transmet
 la clé au worker et conserve le cache des embeddings dans un volume dédié.
 Les documents doivent déjà être indexés selon le [guide de recherche](retrieval.md).
-La migration 003 ajoute le compteur de budget sans supprimer les données existantes.
 
 Pour appeler le RAG en CLI depuis la racine, sans worker :
 
@@ -84,8 +83,7 @@ $env:ASSISTOPS_RAG_USER_ROLES = '{"demo":{"user-001":["customer"]}}'
 ```
 
 Cette CLI est un outil d'opérateur de confiance, pas une authentification utilisateur.
-Elle utilise PostgreSQL pour partager le quota avec le worker. Ne pas lancer en
-parallèle un worker démo et un worker RAG sur la même file : chacun peut prendre
+Ne pas lancer en parallèle des workers de modes différents sur la même file : chacun peut prendre
 n'importe quel job. L'override remplace le worker du Compose de base.
 
 Pour revenir au processeur démo sans effacer les volumes :
@@ -111,37 +109,28 @@ Une tentative effectue au maximum un appel d'embedding et un appel de générati
 le cache peut éviter l'embedding. Les appels de génération utilisent `store=false`.
 Ce paramètre ne constitue pas une garantie de rétention nulle côté fournisseur.
 
-`ASSISTOPS_RAG_DAILY_ATTEMPTS=5` par défaut autorise cinq tentatives par jour UTC,
-partagées entre processus utilisant la même base et le même schéma. Chaque tentative
-réserve conventionnellement 0,01 $, une marge prudente pour les limites ci-dessus.
-Le compteur est atomique et persiste après redémarrage. Les réservations ne sont
-pas remboursées après une erreur ou une abstention. La valeur peut être configurée
-de 0 à 20 ; 0 désactive les appels payants du RAG.
-
-Ce mécanisme limite **ce parcours RAG**, pas le compte OpenAI : l'ingestion et les
-autres applications utilisant la clé ne sont pas comptabilisées. Le compteur ne
-consulte pas le solde réel et doit être réévalué si les tarifs ou limites changent.
+Le Supervisor et le RAG partagent le transport de génération. Le routeur limite
+sa sortie à 450 tokens, contre 600 pour le RAG. Ces limites bornent chaque requête ;
+elles ne constituent pas un rate limiting global ou par utilisateur.
 
 `result.usage` et le log `rag_completed` contiennent modèle, version du prompt,
 collection, tokens, latence et coût estimé. Les logs ne contiennent ni question ni
 passage ni clé. Le résultat conservé en base contient la réponse et les citations,
 donc devra suivre la politique de rétention de l'application.
 Les coûts estimés proviennent des usages reçus ; une réponse fournisseur perdue
-peut être facturée sans apparaître dans ces usages. Sa réservation reste consommée.
+peut être facturée sans apparaître dans ces usages.
 
 ## Tests et limites avant production
 
 La CI ne nécessite aucune clé OpenAI. Elle vérifie les réponses structurées avec
 des doublures, les citations inventées, l'absence de sources, les permissions,
-l'annulation, le quota concurrent et le parcours webhook → worker → résultat
+l'annulation et le parcours webhook → worker → résultat
 persisté avec rejeu. Les tests Qdrant existants vérifient les filtres réels.
 
-Vérification locale du 25 septembre 2026 : **109 tests réussis**, ainsi que le
-parcours HTTP sur les conteneurs avec une vraie réponse OpenAI et un doublon
-sans second traitement. Le [rapport de trois cas réels](../retrieval-reports/rag-smoke.json)
-conserve également Q01 (réponse avec source), Q17 (abstention sur les données de
+Le [rapport de trois cas réels](../retrieval-reports/rag-smoke.json)
+conserve Q01 (réponse avec source), Q17 (abstention sur les données de
 facture absentes) et Q19 (abstention sur les seuils internes interdits au client).
-Ces trois cas passent. Le coût estimé cumulé de ces trois appels est de 0,00223918 $.
+Ces trois cas passent.
 Il s'agit d'une vérification ponctuelle, pas d'un score général de qualité.
 Le cas Q19 vérifie une non-divulgation par abstention ; la distinction conversationnelle
 entre refus explicite et absence de preuve reste à affiner.
@@ -152,8 +141,8 @@ Pour répéter volontairement ces appels payants, avec le worker RAG actif :
 .\.venv\Scripts\python.exe scripts/check_rag_live.py --live
 ```
 
-Le script écrit son rapport dans `.cache/rag-live.json` et consomme trois tentatives
-du quota partagé. Il n'est pas exécuté en CI. Les rôles et la date de recherche
+Le script écrit son rapport dans `.cache/rag-live.json`. Il n'est pas exécuté en
+CI, car il appelle OpenAI. Les rôles et la date de recherche
 sont ceux du worker ; le benchmark sert uniquement de source des questions.
 
 Les documents et questions sont des entrées non fiables dans le prompt. Les
@@ -167,14 +156,16 @@ Avant une mise en production, il reste notamment à valider :
   réponses historiques après un changement de permissions.
 - Le rate limiting, la rétention, les sauvegardes et les alertes opérationnelles.
 - Les dépendances verrouillées transitivement et la gestion des secrets déployés.
-- LangGraph, mémoire conversationnelle, API métier réelles et tracing LangSmith.
+- Conversations partagées, checkpoints par étape, API métier réelles et tracing LangSmith.
+  La [mémoire privée du Supervisor](development.md#mémoire-conversationnelle) est
+  implémentée ; le RAG direct continue de traiter une question autonome.
   Les outils simulés et la validation humaine via API sont décrits dans le
   [guide de développement](development.md#outils-métier-simulés-et-approbations).
 
 Les timeouts HTTP bornent les opérations réseau. La génération est asynchrone et
 annulable ; une recherche synchrone déjà lancée dans un thread peut finir après
-l'annulation du worker, mais ne déclenche alors aucune génération. Une réservation
-conservée couvre cette incertitude. Le timeout de traitement et la durée de lease
+l'annulation du worker, mais ne déclenche alors aucune génération.
+Le timeout de traitement et la durée de lease
 doivent rester cohérents lors du déploiement.
 
 Référence du format : [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).

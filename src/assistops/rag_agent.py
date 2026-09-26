@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from assistops.config import Settings
 from assistops.embeddings import OpenAIEmbeddings
 from assistops.events import EventInput
-from assistops.rag_budget import reserve_attempt
+from assistops.generation import structured_response
 from assistops.retrieval import Retriever
 
 logger = structlog.get_logger()
@@ -136,41 +136,14 @@ class OpenAIGenerator:
         self.transport = transport
 
     async def generate(self, question: str, evidence: list[dict]) -> dict:
-        body = {
-            "model": self.settings.rag_model,
-            "store": False,
-            "instructions": INSTRUCTIONS,
-            "input": encode({"question": question, "evidence": evidence}),
-            "max_output_tokens": 600,
-            "temperature": 0,
-            "text": {
-                "format": {
-                    "type": "json_schema",
-                    "name": "grounded_answer",
-                    "strict": True,
-                    "schema": Draft.model_json_schema(),
-                }
-            },
-        }
-        # Includes schema and instructions; the admission reserve assumes this hard bound.
-        payload = encode(body).encode("utf-8")
-        if len(payload) > 16000:
-            raise ValueError("Generation input limit exceeded")
-        if not self.settings.openai_api_key:
-            raise ValueError("OpenAI key is not configured")
-        async with httpx.AsyncClient(timeout=15, transport=self.transport) as client:
-            # One cancellable generation call; no automatic retries after uncertain billing.
-            response = await client.post(
-                "https://api.openai.com/v1/responses",
-                headers={
-                    "Authorization": f"Bearer {self.settings.openai_api_key.get_secret_value()}",
-                    "Content-Type": "application/json",
-                },
-                content=payload,
-            )
-        if response.status_code != 200:
-            raise RuntimeError(f"Generation failed (HTTP {response.status_code})")
-        return response.json()
+        return await structured_response(
+            self.settings,
+            instructions=INSTRUCTIONS,
+            content={"question": question, "evidence": evidence},
+            schema=Draft.model_json_schema(),
+            name="grounded_answer",
+            transport=self.transport,
+        )
 
 
 class RagProcessor:
@@ -204,7 +177,6 @@ class RagProcessor:
             "input_tokens": 0,
             "output_tokens": 0,
             "estimated_cost_usd": 0.0,
-            "reserved_usd": 0.0,
         }
 
         def finish(answer):
@@ -234,15 +206,6 @@ class RagProcessor:
             return finish(
                 result("unavailable", "not_configured", "Le service RAG est indisponible.")
             )
-        if not await asyncio.to_thread(reserve_attempt, self.settings):
-            return finish(
-                result(
-                    "budget_exhausted",
-                    "daily_limit",
-                    "Le budget quotidien de recherche est atteint.",
-                )
-            )
-        metrics["reserved_usd"] = 0.01
         try:
             sources, tokens, collection = await asyncio.to_thread(
                 self.retrieve, event.message, event.tenant_id, set(roles)

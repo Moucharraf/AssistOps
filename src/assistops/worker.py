@@ -13,6 +13,7 @@ from assistops.events import EventInput
 from assistops.jobs import Exhausted, JobStore
 from assistops.observability import configure_logging
 from assistops.rag_agent import RagProcessor
+from assistops.supervisor import SupervisorProcessor
 
 logger = structlog.get_logger()
 Processor = Callable[[EventInput], Awaitable[dict]]
@@ -69,7 +70,10 @@ async def run_once(store: JobStore, processor: Processor) -> bool:
 async def serve(settings: Settings, stop: asyncio.Event) -> None:
     if settings.worker_processor == "disabled":
         raise ValueError("Worker processor is disabled")
-    processor = RagProcessor(settings) if settings.worker_processor == "rag" else demo_processor
+    if settings.worker_processor == "supervisor":
+        processor = SupervisorProcessor(settings)
+    else:
+        processor = RagProcessor(settings) if settings.worker_processor == "rag" else demo_processor
     store = JobStore(settings)
     while not stop.is_set():
         try:

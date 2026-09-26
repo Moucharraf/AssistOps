@@ -35,13 +35,26 @@ class JobStore:
 
     def claim(self) -> Lease | Exhausted | None:
         with connect(self.settings) as connection:
+            # A follow-up must not overtake a committed earlier turn, even during retry backoff.
+            # Approval waits are terminal for routing and do not block the conversation.
             row = connection.execute(
                 """SELECT j.event_id, j.attempts, e.payload, e.correlation_id, j.status
                    FROM event_jobs j JOIN inbound_events e ON e.id = j.event_id
-                   WHERE (j.status = 'pending' AND j.next_run_at <= clock_timestamp())
-                      OR (j.status = 'processing' AND j.lease_expires_at <= clock_timestamp())
+                   WHERE ((j.status = 'pending' AND j.next_run_at <= clock_timestamp())
+                      OR (j.status = 'processing' AND j.lease_expires_at <= clock_timestamp()))
+                     AND (NOT %s OR NOT EXISTS (
+                       SELECT 1 FROM inbound_events older
+                       JOIN event_jobs earlier ON earlier.event_id = older.id
+                       WHERE older.tenant_id = e.tenant_id AND older.connector_id = e.connector_id
+                         AND older.source = e.source
+                         AND older.payload->>'user_id' = e.payload->>'user_id'
+                         AND older.payload->>'conversation_id' = e.payload->>'conversation_id'
+                         AND (older.received_at, older.id) < (e.received_at, e.id)
+                         AND earlier.status IN ('pending', 'processing')
+                     ))
                    ORDER BY j.next_run_at, j.created_at, j.event_id
-                   LIMIT 1 FOR UPDATE OF j SKIP LOCKED"""
+                   LIMIT 1 FOR UPDATE OF j SKIP LOCKED""",
+                (self.settings.worker_processor == "supervisor",),
             ).fetchone()
             if row is None:
                 return None

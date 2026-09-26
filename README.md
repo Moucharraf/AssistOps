@@ -51,22 +51,29 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Fiabilité | Persistance transactionnelle, idempotence et audit de réception | Implémenté |
 | Observabilité | Logs JSON, correlation IDs, contrôles de santé | Implémenté |
 | Développement | Docker Compose, migrations, tests et workflow GitHub Actions | Implémenté |
-| Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, modes démo et RAG |
-| Orchestration | Supervisor LangGraph et routage en langage naturel | Prévu |
-| Réponses | RAG Agent, citations vérifiées, abstention et quota persistant | Implémenté |
+| Traitement | Worker, retries, reprise après interruption et statut authentifié | Implémenté, modes démo, RAG et Supervisor |
+| Orchestration | Supervisor LangGraph et routage en langage naturel | Implémenté, parcours bornés |
+| Réponses | RAG Agent, citations vérifiées et abstention | Implémenté |
 | Connaissances | Corpus synthétique réaliste, provenance et questions de référence | Disponible |
 | Recherche | Ingestion OpenAI, recherche Qdrant filtrée et passages sourcés | Implémenté en CLI |
 | Actions | Tools Agent : utilisateur, facture, proposition de ticket | Implémenté, services simulés |
 | Approbations | Décision signée, expiration, audit et création idempotente | Implémenté, tickets simulés |
-| Mémoire | Conversations persistées entre sessions | Prévu |
+| Mémoire | Contexte privé entre messages et redémarrages | Implémenté, historique borné |
 | Intégrations | n8n, Slack, e-mail et API métier réelles | Prévu |
 | Évaluation | Recall documentaire, tokens/coût estimé et latence RAG | Implémenté |
-| Tracing | LangSmith et E2E métier complets | Prévu |
+| Tracing | Export des traces vers LangSmith | Prévu |
 
-Le worker propose un mode de démonstration et un mode RAG qui répond aux questions
-documentaires avec des citations vérifiées. Les résultats sont conservés dans
-PostgreSQL et consultables avec l'identité signée d'origine. Le RAG n'exécute
-pas encore d'action métier. Voir le [guide du RAG Agent](docs/rag-agent.md).
+Le Supervisor analyse une demande en langage naturel et peut enchaîner une recherche
+documentaire, une lecture métier et une proposition de ticket. Son plan est validé
+et conservé dans PostgreSQL avant l'exécution. Les modes démo et RAG direct restent
+disponibles. Voir le [fonctionnement du Supervisor](docs/development.md#supervisor-langgraph)
+et le [guide du RAG Agent](docs/rag-agent.md).
+
+Avec le même identifiant de conversation, « Consulte INV-001 » peut être suivi de
+« Prépare un ticket pour cette facture ». La mémoire conserve un contexte limité,
+isolé par utilisateur et connecteur. Les données métier et documentaires sont
+relues avec les droits actuels ; une confirmation en langage naturel ne remplace
+jamais l'approbation signée. Voir la [mémoire conversationnelle](docs/development.md#mémoire-conversationnelle).
 
 Les demandes structurées `tool_call` passent par le Tools Agent. La création d'un
 ticket simulé attend une décision signée d'un autre utilisateur habilité. Les
@@ -76,9 +83,9 @@ décrit les appels et le parcours d'approbation.
 
 ## Stack technique
 
-**Socle :** Python · FastAPI · OpenAI · PostgreSQL · Qdrant · Docker · pytest · structlog · GitHub Actions.
+**Socle :** Python · LangGraph · LangChain Core · FastAPI · OpenAI · PostgreSQL · Qdrant · Docker · pytest · structlog · GitHub Actions.
 
-**Intégrations prévues :** LangGraph · LangChain · n8n · LangSmith.
+**Intégrations prévues :** n8n · LangSmith (export des traces).
 
 ## Démarrage rapide
 
@@ -122,7 +129,8 @@ contrôles métier complémentaires font partie des travaux de préparation à l
 La recherche obtient un Recall@5 documentaire de **96,875 %** sur les 16 questions
 répondables du petit corpus synthétique de référence. Ce résultat ne mesure ni
 la qualité de réponses générées ni une performance générale en production.
-Les scénarios E2E métier restent à implémenter. Voir le [rapport](retrieval-reports/baseline.json)
+Les parcours HTTP métier simulés sont vérifiés en CI, avec approbation et rejeu.
+Voir le [rapport](retrieval-reports/baseline.json)
 et le [guide de recherche](docs/retrieval.md).
 
 Le parcours RAG est également vérifié sur trois cas réels : réponse sourcée,

@@ -93,6 +93,48 @@ class BusinessTools:
             if not isinstance(call, CreateTicket):
                 audit(connection, event_id, "business_read", {"tool": call.name})
                 return tool_result("read_completed", data=data)
+            # Serialize proposals for this private conversation and invoice, across event IDs.
+            # A model repeating an earlier request must not create another approval candidate.
+            scope = json.dumps(
+                [
+                    event.tenant_id,
+                    connector,
+                    event.source,
+                    event.user_id,
+                    event.conversation_id,
+                    call.invoice_id,
+                ]
+            )
+            connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (scope,))
+            existing = connection.execute(
+                "SELECT 1 FROM ticket_proposals WHERE event_id = %s", (event_id,)
+            ).fetchone()
+            pending = connection.execute(
+                """SELECT 1 FROM ticket_proposals p JOIN inbound_events e ON e.id = p.event_id
+                   WHERE e.tenant_id = %s AND e.connector_id = %s AND e.source = %s
+                     AND e.payload->>'user_id' = %s AND e.payload->>'conversation_id' = %s
+                     AND p.arguments->>'invoice_id' = %s AND p.event_id <> %s
+                     AND p.status = 'pending' AND p.expires_at > clock_timestamp() LIMIT 1""",
+                (
+                    event.tenant_id,
+                    connector,
+                    event.source,
+                    event.user_id,
+                    event.conversation_id,
+                    call.invoice_id,
+                    event_id,
+                ),
+            ).fetchone()
+            if pending and not existing:
+                audit(
+                    connection, event_id, "ticket_proposal_blocked", {"reason": "approval_pending"}
+                )
+                return tool_result(
+                    "clarification_required",
+                    reason="approval_pending",
+                    message="Une proposition pour cette facture attend déjà une décision. "
+                    "Utilisez le canal de validation pour l'approuver ou la refuser.",
+                )
             arguments = {
                 "invoice_id": call.invoice_id,
                 "customer_id": data["customer_id"],
@@ -123,7 +165,7 @@ class BusinessTools:
             "SELECT id FROM synthetic_tickets WHERE proposal_id = %s", (proposal["id"],)
         ).fetchone()
         status = proposal["status"]
-        return tool_result(
+        result = tool_result(
             {
                 "pending": "awaiting_approval",
                 "approved": "ticket_created",
@@ -141,6 +183,19 @@ class BusinessTools:
             },
             ticket_id=str(ticket[0]) if ticket else None,
         )
+        previous = connection.execute(
+            "SELECT result FROM event_jobs WHERE event_id = %s", (proposal["event_id"],)
+        ).fetchone()
+        if previous and previous[0] and "supervisor" in previous[0]:
+            # Keep documentary evidence and routing usage when a human decision completes the job.
+            result.update(processor="supervisor", supervisor=previous[0]["supervisor"])
+            result["message"] = {
+                "pending": "Le ticket est proposé et attend une validation humaine.",
+                "approved": "Le ticket simulé a été créé après approbation.",
+                "rejected": "La proposition a été refusée. Aucun ticket n’a été créé.",
+                "expired": "La proposition a expiré. Aucun ticket n’a été créé.",
+            }[status]
+        return result
 
     def review(self, query, connector, correlation_id, decision=None):
         self.enabled()

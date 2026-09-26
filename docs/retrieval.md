@@ -2,7 +2,8 @@
 
 Cette étape implémente la recherche sémantique en ligne de commande. Elle retourne
 des passages et leurs sources. Le [RAG Agent](rag-agent.md) les utilise maintenant
-pour générer des réponses sourcées via le worker. Le Supervisor LangGraph reste à construire.
+pour générer des réponses sourcées via le worker, directement ou depuis le
+[Supervisor LangGraph](development.md#supervisor-langgraph).
 
 ## Données et fonctionnement
 

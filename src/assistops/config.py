@@ -33,11 +33,10 @@ class Settings(BaseSettings):
     dependency_timeout_seconds: float = Field(default=3.0, ge=0.1, le=30)
     webhook_connectors: dict[str, Connector] = Field(default_factory=dict)
     webhook_body_timeout_seconds: float = Field(default=10, ge=0.1, le=30)
-    worker_processor: Literal["disabled", "demo", "rag"] = "disabled"
+    worker_processor: Literal["disabled", "demo", "rag", "supervisor"] = "disabled"
     rag_model: Literal["gpt-4.1-mini-2025-04-14"] = "gpt-4.1-mini-2025-04-14"
     # Resolve permissions from trusted configuration, never from message content.
     rag_user_roles: dict[str, dict[str, frozenset[str]]] = Field(default_factory=dict)
-    rag_daily_attempts: int = Field(default=5, ge=0, le=20)
     rag_embedding_cache: Path = Path(".cache/embeddings")
     business_backend: Literal["disabled", "synthetic"] = "disabled"
     business_user_roles: dict[
