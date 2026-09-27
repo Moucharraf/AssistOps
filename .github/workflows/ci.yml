@@ -25,6 +25,15 @@ jobs:
         run: python -m assistops.corpus
       - run: pytest
       - run: docker compose -f compose.yaml -f compose.n8n.yaml config --quiet
+      - name: Validate opt-in Slack configuration without real credentials
+        env:
+          SLACK_BOT_TOKEN: test-only
+          SLACK_APP_TOKEN: test-only
+          SLACK_CONNECTOR_SECRET: test-only-slack-secret-32-characters
+          SLACK_TEAM_ID: TTEST
+          SLACK_CHANNEL_ID: CTEST
+          SLACK_USER_MAP: '{"UTEST":"user-001"}'
+        run: docker compose -f compose.yaml -f compose.n8n.yaml -f compose.slack.yaml config --quiet
       - run: docker compose -f compose.yaml -f compose.n8n.yaml up --build --wait --wait-timeout 240
       - name: Verify readiness
         run: curl --fail --retry 5 --retry-delay 2 http://localhost:8000/health/ready

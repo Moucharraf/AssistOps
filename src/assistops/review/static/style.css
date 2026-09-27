@@ -595,3 +595,53 @@ dialog::backdrop {
     grid-template-columns: 1fr 1fr;
   }
 }
+.review-context {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbfc;
+}
+.review-context h3 {
+  margin: 0 0 12px;
+}
+.review-context details {
+  margin: 12px 0;
+  padding-top: 12px;
+}
+.review-context summary {
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.context-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  margin-top: 14px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.invoice-evidence {
+  padding: 12px 0;
+  white-space: pre-line;
+  font-size: 12px;
+  color: #315880;
+}
+.document-sources {
+  list-style: none;
+  padding: 0;
+  font-size: 12px;
+}
+.document-sources li {
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  overflow-wrap: anywhere;
+}
+.document-sources blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 2px solid #ccd6dc;
+  color: var(--muted);
+  white-space: pre-wrap;
+}

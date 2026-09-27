@@ -45,6 +45,10 @@ docker compose exec api python -m assistops.review.cli disable reviewer
 
 1. Se connecter et ouvrir une proposition dans **À valider** ou **Tout l’historique**.
 2. Vérifier le demandeur, le client, la facture, le sujet, la description et la destination.
+   Le bloc **Éléments pour votre décision** présente la demande initiale et, lorsqu’elles
+   existent, les informations de facture consultées et la réponse documentaire avec
+   ses extraits sources. Les documents synthétiques sont signalés. Les détails se
+   déplient à la demande pour garder l’action proposée lisible.
 3. Choisir **Approuver…** ou **Refuser**, puis confirmer dans la boîte de dialogue.
 4. Suivre le résultat dans la même fiche. L’interface actualise les données toutes
    les 15 secondes lorsqu’elle est visible, hors confirmation et envoi d’une décision.
@@ -54,6 +58,13 @@ n’envoie jamais un nouveau sujet, une nouvelle destination, un rôle ou une id
 avec sa décision. L’API réutilise `BusinessTools.review`, qui contrôle les droits,
 interdit l’auto-approbation, vérifie l’expiration et enregistre la décision avec l’audit.
 Un rejeu de la même décision ne crée pas de deuxième ticket.
+
+Ce contexte provient du résultat enregistré pour cette demande : son affichage ne
+déclenche aucun appel IA ni aucune nouvelle consultation métier. Il reste accessible
+après la décision. Les informations de facture ne constituent pas un état en temps réel.
+L’absence de recherche documentaire est indiquée explicitement. Une réponse sourcée
+ne signifie pas que la réclamation est acceptée : l’approbation autorise uniquement
+la création du ticket affiché.
 
 La liste masque les propositions expirées du filtre **À valider**, même si personne
 ne les a encore consultées. Leur état persistant est finalisé lors de la consultation

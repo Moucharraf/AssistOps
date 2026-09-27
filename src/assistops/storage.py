@@ -1,5 +1,6 @@
 import hashlib
 import json
+from contextlib import nullcontext
 from uuid import uuid4
 
 import psycopg
@@ -43,13 +44,20 @@ class EventStore:
             receipt_id=row[0], status=row[1], attempts=row[2], result=row[3], last_error=row[4]
         )
 
-    def accept(self, event: EventInput, connector_id: str, correlation_id: str) -> Receipt:
+    def accept(
+        self, event: EventInput, connector_id: str, correlation_id: str, *, connection=None
+    ) -> Receipt:
         # Preserve hashes of events accepted before optional tool calls were introduced.
         payload = event.model_dump(exclude_none=True)
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
         fingerprint = hashlib.sha256(canonical.encode()).hexdigest()
         receipt_id = uuid4()
-        with connect(self.settings) as connection:
+        # Trusted ingress adapters may atomically add their reply destination to this transaction.
+        with (
+            nullcontext(connection)
+            if connection is not None
+            else connect(self.settings) as connection
+        ):
             inserted = connection.execute(
                 """INSERT INTO inbound_events
                    (id, tenant_id, source, event_id, payload_hash, payload,
@@ -87,5 +95,5 @@ class EventStore:
                        VALUES (%s, 'event_received', %s, %s)""",
                     (receipt_id, connector_id, correlation_id),
                 )
-        # The context manager committed all three records before any 202 is returned.
+        # With a supplied connection, the caller must commit before acknowledging delivery.
         return Receipt(receipt_id=receipt_id, event_id=event.event_id, duplicate=duplicate)

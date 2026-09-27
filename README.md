@@ -61,7 +61,8 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Approbations | Interface web authentifiée, décision sur contenu exact, expiration et audit | Implémenté, simulation ou Jira Cloud |
 | Mémoire | Contexte privé entre messages et redémarrages | Implémenté, historique borné |
 | Intégrations | Webhooks n8n authentifiés, signature et suivi du résultat | Implémenté, environnement local |
-| Connecteurs externes | Slack, e-mail et API CRM/facturation réelles | Prévu |
+| Slack | Mentions du bot, réponses dans le fil et liens de validation | Implémenté, Socket Mode avec identités autorisées |
+| Connecteurs externes | E-mail et API CRM/facturation réelles | Prévu |
 | Tickets Jira Cloud | Envoi après approbation, suivi durable et rapprochement des résultats incertains | Implémenté, création et rejeu validés sur Jira Cloud |
 | Évaluation | Recall documentaire, tokens/coût estimé et latence RAG | Implémenté |
 | Tracing | Traces LangSmith filtrées, hiérarchie des agents et compteurs | Implémenté, activation explicite |
@@ -163,6 +164,7 @@ fausser l'évaluation. Voir le [guide du corpus](docs/synthetic-corpus.md).
 
 ## Documentation
 
+- [Connecteur Slack : installation, identités et suivi des réponses](docs/slack.md)
 - [Interface de validation : comptes, décisions et suivi Jira](docs/review-ui.md)
 - [RAG Agent : réponses sourcées, configuration et limites](docs/rag-agent.md)
 - [Recherche documentaire : fonctionnement, coût et commandes](docs/retrieval.md)

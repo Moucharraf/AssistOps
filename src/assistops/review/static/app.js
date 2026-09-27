@@ -35,6 +35,7 @@ let session = null,
   page = 0,
   detailVersion = 0,
   listVersion = 0;
+let listSnapshot = null;
 let confirmation = null,
   submitting = false,
   refreshing = false;
@@ -52,6 +53,7 @@ function formatDate(value) {
 function showLogin() {
   session = null;
   selected = null;
+  listSnapshot = null;
   detailVersion++;
   listVersion++;
   $("workspace").hidden = true;
@@ -113,6 +115,14 @@ async function loadList() {
   const version = ++listVersion;
   const data = await api(`proposals?status=${$("filter").value}&page=${page}`);
   if (version !== listVersion || !session) return;
+  const snapshot = JSON.stringify([
+    data,
+    $("filter").value,
+    selected?.proposal.id,
+  ]);
+  // Preserve focus and scroll position when polling returns the same list.
+  if (snapshot === listSnapshot) return;
+  listSnapshot = snapshot;
   const list = $("proposal-list");
   list.replaceChildren();
   for (const item of data.items) {
@@ -154,7 +164,57 @@ async function loadList() {
   $("next").disabled = !data.has_more;
   $("page-number").textContent = `Page ${page + 1}`;
 }
+function renderContext(data) {
+  // Present stored evidence, never generate new recommendations during review.
+  $("request-message").textContent =
+    data.request_message || "Demande indisponible.";
+  const document = data.supervisor?.document_answer;
+  $("document-context").hidden = !document;
+  $("no-document-context").hidden = Boolean(document);
+  $("document-answer").textContent =
+    document?.message || "Réponse documentaire indisponible.";
+  const sources = $("document-sources");
+  sources.replaceChildren();
+  for (const citation of document?.citations || []) {
+    const item = window.document.createElement("li");
+    const title = window.document.createElement("strong");
+    title.textContent = `[${citation.id}] ${citation.title}`;
+    const quote = window.document.createElement("blockquote");
+    quote.textContent = citation.quote;
+    item.append(title, quote);
+    if (citation.origin === "synthetic") {
+      const origin = window.document.createElement("span");
+      origin.className = "small";
+      origin.textContent = "Document synthétique";
+      item.append(origin);
+    }
+    sources.append(item);
+  }
+  const read = data.supervisor?.read_result;
+  const invoice = read?.outcome === "read_completed" ? read.data : null;
+  const evidence = $("invoice-evidence");
+  evidence.hidden = !invoice?.invoice_id;
+  evidence.textContent = "";
+  if (invoice?.invoice_id) {
+    const statuses = {
+      unpaid: "Non payée",
+      paid: "Payée",
+      overdue: "En retard",
+      void: "Annulée",
+    };
+    const amount =
+      typeof invoice.amount_minor === "number"
+        ? `${(invoice.amount_minor / 100).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} ${invoice.currency}`
+        : "Montant indisponible";
+    evidence.textContent = `Facture consultée · ${invoice.invoice_id}\n${amount} · ${statuses[invoice.status] || invoice.status}\nInformations enregistrées lors du traitement de la demande.`;
+  }
+}
 function renderDetail(data) {
+  if (selected?.proposal.id !== data.proposal.id) {
+    $("request-context").open = false;
+    $("document-context").open = false;
+  }
+  renderContext(data);
   selected = data;
   const p = data.proposal,
     args = p.arguments,
@@ -234,8 +294,15 @@ async function refresh() {
   if (refreshing || submitting || $("confirm-dialog").open || !session) return;
   refreshing = true;
   try {
-    if (selected) await selectProposal(selected.proposal.id);
-    else await loadList();
+    if (selected) {
+      const version = ++detailVersion;
+      const data = await api(`proposals/${selected.proposal.id}`);
+      if (version !== detailVersion || !session || $("confirm-dialog").open)
+        return;
+      // Background checks must not hide actions while the request is in flight.
+      if (JSON.stringify(data) !== JSON.stringify(selected)) renderDetail(data);
+    }
+    await loadList();
   } finally {
     refreshing = false;
   }
@@ -342,6 +409,16 @@ async function startSession() {
   $("login-view").hidden = true;
   $("workspace").hidden = false;
   $("empty-detail").hidden = false;
+  const proposal = new URLSearchParams(window.location.search).get("proposal");
+  if (
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      proposal || "",
+    )
+  ) {
+    $("filter").value = "all";
+    await selectProposal(proposal);
+    return;
+  }
   await loadList();
 }
 startSession()

@@ -130,7 +130,35 @@
                   <dd id="invoice"></dd>
                 </div>
               </dl>
-              <h3>Description du ticket</h3>
+              <section
+                class="review-context"
+                aria-label="Contexte de la demande"
+              >
+                <h3>Éléments pour votre décision</h3>
+                <details id="request-context">
+                  <summary>Demande initiale</summary>
+                  <p id="request-message" class="context-text"></p>
+                </details>
+                <div
+                  id="invoice-evidence"
+                  class="invoice-evidence"
+                  hidden
+                ></div>
+                <details id="document-context" hidden>
+                  <summary>Réponse documentaire et sources</summary>
+                  <p class="small">
+                    Informations retrouvées dans les documents ; elles ne
+                    constituent pas une décision sur la réclamation.
+                  </p>
+                  <p id="document-answer" class="context-text"></p>
+                  <ol id="document-sources" class="document-sources"></ol>
+                </details>
+                <p id="no-document-context" class="small">
+                  Aucune recherche documentaire enregistrée pour cette
+                  proposition.
+                </p>
+              </section>
+              <h3>Contenu du ticket proposé</h3>
               <p id="description" class="ticket-description"></p>
               <p class="data-note">
                 Données métier synthétiques : les clients et factures de cet

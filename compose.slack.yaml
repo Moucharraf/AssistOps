@@ -1,0 +1,25 @@
+# Apply after compose.n8n.yaml to retain both local demo connectors.
+services:
+  api:
+    environment:
+      ASSISTOPS_WEBHOOK_CONNECTORS: &slack-connectors '{"demo":{"secret":"assistops-local-webhook-secret-32-chars","tenant_id":"demo","allowed_user_ids":["user-001","user-002","reviewer-001"],"source":"webhook"},"n8n-demo":{"secret":"assistops-n8n-local-signing-secret-32-chars","tenant_id":"demo","allowed_user_ids":["user-001"],"source":"webhook"},"slack-demo":{"secret":"${SLACK_CONNECTOR_SECRET:?Set a random connector secret}","tenant_id":"demo","allowed_user_ids":["user-001"],"source":"slack"}}'
+  slack:
+    build: .
+    command: ["python", "-m", "assistops.slack"]
+    environment:
+      ASSISTOPS_ENVIRONMENT: local
+      ASSISTOPS_DATABASE_URL: postgresql://assistops:assistops-local-only@postgres:5432/assistops
+      ASSISTOPS_WEBHOOK_CONNECTORS: *slack-connectors
+      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN:?Set SLACK_BOT_TOKEN}
+      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN:?Set SLACK_APP_TOKEN}
+      SLACK_TEAM_ID: ${SLACK_TEAM_ID:?Set SLACK_TEAM_ID}
+      SLACK_CHANNEL_ID: ${SLACK_CHANNEL_ID:?Set SLACK_CHANNEL_ID}
+      SLACK_USER_MAP: ${SLACK_USER_MAP:?Map Slack members to AssistOps identities}
+      SLACK_REVIEW_URL: ${SLACK_REVIEW_URL:-http://localhost:8000/review}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 20s

@@ -196,7 +196,7 @@ def review_proposal(settings, account, proposal_id, correlation_id, decision=Non
     with connect(settings) as connection, connection.cursor(row_factory=dict_row) as cursor:
         proposal = cursor.execute(
             """SELECT e.connector_id, e.source, e.payload->>'user_id' AS requester_id,
-                      p.created_at, p.decided_at
+                      p.created_at, p.decided_at, e.payload->>'message' AS request_message
                FROM ticket_proposals p JOIN inbound_events e ON e.id = p.event_id
                WHERE p.id = %s AND e.tenant_id = %s AND e.connector_id = ANY(%s)""",
             (proposal_id, account["tenant_id"], account["connector_ids"]),
@@ -223,6 +223,7 @@ def review_proposal(settings, account, proposal_id, correlation_id, decision=Non
         "requester_id": proposal["requester_id"],
         "connector_id": proposal["connector_id"],
         "created_at": proposal["created_at"],
+        "request_message": proposal["request_message"],
         "can_decide": result["proposal"]["status"] == "pending"
         and proposal["requester_id"] != account["user_id"],
     }

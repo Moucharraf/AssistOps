@@ -17,6 +17,7 @@ dependencies = [
   "structlog==25.5.0",
   "langgraph==1.2.12",
   "langsmith==0.8.3",
+  "slack-sdk==3.44.1",
 ]
 
 [project.optional-dependencies]
