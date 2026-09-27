@@ -1,0 +1,8 @@
+*
+!nodes/
+!nodes/**
+!credentials/
+!credentials/**
+!fixtures/
+!fixtures/**
+!bootstrap.sh

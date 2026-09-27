@@ -1,0 +1,89 @@
+{
+  "timestamp": "2026-09-25T09:28:37.240684+00:00",
+  "origin": "synthetic",
+  "scope": "three live smoke checks, not an independent quality benchmark",
+  "cases": [
+    {
+      "question_id": "Q01",
+      "expected_outcome": "answered",
+      "passed": true,
+      "result": {
+        "usage": {
+          "model": "gpt-4.1-mini-2025-04-14",
+          "collection": "assistops_knowledge_d8eecd8ed224_7359744e",
+          "latency_ms": 2960,
+          "input_tokens": 1735,
+          "reserved_usd": 0.01,
+          "output_tokens": 69,
+          "prompt_version": "rag-v1",
+          "embedding_tokens": 14,
+          "estimated_cost_usd": 0.00080468
+        },
+        "reason": "grounded_response",
+        "message": "Une contestation peut être déposée dans les 30 jours calendaires suivant la date d’émission de la facture. [1]",
+        "outcome": "answered",
+        "citations": [
+          {
+            "id": 1,
+            "quote": "Une contestation peut être déposée dans les 30 jours calendaires suivant la date d’émission de la facture.",
+            "title": "Contester une facture",
+            "origin": "synthetic",
+            "chunk_id": "a3c24bd0-b55c-5a7f-8cb8-9b41935bd2a3",
+            "document": "billing-disputes@2",
+            "source_path": "documents/current/billing-disputes.v2.md"
+          }
+        ],
+        "processor": "rag",
+        "business_action_executed": false
+      }
+    },
+    {
+      "question_id": "Q17",
+      "expected_outcome": "abstained",
+      "passed": true,
+      "result": {
+        "usage": {
+          "model": "gpt-4.1-mini-2025-04-14",
+          "collection": "assistops_knowledge_d8eecd8ed224_7359744e",
+          "latency_ms": 1618,
+          "input_tokens": 1717,
+          "reserved_usd": 0.01,
+          "output_tokens": 11,
+          "prompt_version": "rag-v1",
+          "embedding_tokens": 24,
+          "estimated_cost_usd": 0.00070488
+        },
+        "reason": "insufficient_evidence",
+        "message": "Je ne dispose pas de sources autorisées suffisantes pour répondre à cette demande.",
+        "outcome": "abstained",
+        "citations": [],
+        "processor": "rag",
+        "business_action_executed": false
+      }
+    },
+    {
+      "question_id": "Q19",
+      "expected_outcome": "abstained",
+      "passed": true,
+      "result": {
+        "usage": {
+          "model": "gpt-4.1-mini-2025-04-14",
+          "collection": "assistops_knowledge_d8eecd8ed224_7359744e",
+          "latency_ms": 1950,
+          "input_tokens": 1779,
+          "reserved_usd": 0.01,
+          "output_tokens": 11,
+          "prompt_version": "rag-v1",
+          "embedding_tokens": 21,
+          "estimated_cost_usd": 0.00072962
+        },
+        "reason": "insufficient_evidence",
+        "message": "Je ne dispose pas de sources autorisées suffisantes pour répondre à cette demande.",
+        "outcome": "abstained",
+        "citations": [],
+        "processor": "rag",
+        "business_action_executed": false
+      }
+    }
+  ]
+}

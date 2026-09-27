@@ -1,0 +1,86 @@
+name: assistops
+services:
+  api:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ASSISTOPS_ENVIRONMENT: local
+      ASSISTOPS_REVIEW_UI_ENABLED: "true"
+      ASSISTOPS_REVIEW_UI_ORIGIN: ${ASSISTOPS_REVIEW_UI_ORIGIN:-http://localhost:8000}
+      ASSISTOPS_API_RATE_LIMIT_REQUESTS: ${ASSISTOPS_API_RATE_LIMIT_REQUESTS:-120}
+      ASSISTOPS_API_RATE_LIMIT_PERIOD_SECONDS: ${ASSISTOPS_API_RATE_LIMIT_PERIOD_SECONDS:-60}
+      ASSISTOPS_DATABASE_URL: postgresql://assistops:assistops-local-only@postgres:5432/assistops
+      ASSISTOPS_QDRANT_URL: http://qdrant:6333
+      # Public demo credential, local use only. Never reuse outside this Compose.
+      ASSISTOPS_WEBHOOK_CONNECTORS: '{"demo":{"secret":"assistops-local-webhook-secret-32-chars","tenant_id":"demo","allowed_user_ids":["user-001","user-002","reviewer-001"],"source":"webhook"}}'
+      ASSISTOPS_BUSINESS_BACKEND: synthetic
+      ASSISTOPS_BUSINESS_USER_ROLES: '{"demo":{"user-001":["customer"],"user-002":["customer"],"reviewer-001":["ticket_approver"]}}'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=8)"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    build: .
+    command: ["python", "-m", "assistops.worker"]
+    environment:
+      ASSISTOPS_ENVIRONMENT: local
+      ASSISTOPS_DATABASE_URL: postgresql://assistops:assistops-local-only@postgres:5432/assistops
+      ASSISTOPS_WORKER_PROCESSOR: demo
+      ASSISTOPS_BUSINESS_BACKEND: synthetic
+      ASSISTOPS_BUSINESS_USER_ROLES: '{"demo":{"user-001":["customer"],"user-002":["customer"],"reviewer-001":["ticket_approver"]}}'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 45s
+
+  migrate:
+    build: .
+    command: ["python", "-m", "assistops.migrate"]
+    environment:
+      ASSISTOPS_DATABASE_URL: postgresql://assistops:assistops-local-only@postgres:5432/assistops
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17.6-bookworm
+    environment:
+      POSTGRES_USER: assistops
+      POSTGRES_PASSWORD: assistops-local-only
+      POSTGRES_DB: assistops
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assistops -d assistops"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.4
+    ports:
+      - "127.0.0.1:6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  postgres_data:
+    name: assistops_mvp_postgres17_data
+  qdrant_data:
+    name: assistops_mvp_qdrant115_data

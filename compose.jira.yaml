@@ -1,0 +1,15 @@
+# Optional: explicitly enables real Jira writes after human approval.
+services:
+  api:
+    environment: &jira-target
+      ASSISTOPS_TICKET_BACKEND: jira
+      ASSISTOPS_JIRA_SITE: ${ASSISTOPS_JIRA_SITE:?Set the Jira Cloud site}
+      ASSISTOPS_JIRA_PROJECT_KEY: ${ASSISTOPS_JIRA_PROJECT_KEY:?Set the Jira project key}
+      ASSISTOPS_JIRA_ISSUE_TYPE_ID: ${ASSISTOPS_JIRA_ISSUE_TYPE_ID:?Select an issue type ID}
+      ASSISTOPS_JIRA_TENANT_ID: ${ASSISTOPS_JIRA_TENANT_ID:?Set the authorized AssistOps tenant}
+      ASSISTOPS_JIRA_CLOUD_ID: ${ASSISTOPS_JIRA_CLOUD_ID:-}
+  worker:
+    environment:
+      <<: *jira-target
+      JIRA_EMAIL: ${JIRA_EMAIL:?Set the Atlassian account email}
+      JIRA_API_TOKEN: ${JIRA_API_TOKEN:?Set the Atlassian API token}

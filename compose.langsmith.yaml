@@ -1,0 +1,8 @@
+# Explicit export destination; do not set LANGSMITH_TRACING=true for the raw graph.
+services:
+  worker:
+    environment:
+      ASSISTOPS_LANGSMITH_ENABLED: "true"
+      ASSISTOPS_LANGSMITH_ENDPOINT: ${ASSISTOPS_LANGSMITH_ENDPOINT:?Set the LangSmith API URL}
+      ASSISTOPS_LANGSMITH_PROJECT: ${ASSISTOPS_LANGSMITH_PROJECT:-${LANGSMITH_PROJECT:-assistops}}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}

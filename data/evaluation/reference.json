@@ -1,0 +1,434 @@
+{
+  "schema_version": 1,
+  "corpus_id": "asterdesk-fr-v1",
+  "origin": "synthetic",
+  "split": "reference",
+  "description": "Jeu de développement visible : pas un test aveugle, pas un score de production. Réponses rédigées avec le corpus, à relire humainement.",
+  "questions": [
+    {
+      "id": "Q01",
+      "question": "Quel est le délai pour contester une facture ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "billing-disputes@2"
+      ],
+      "expected_answer": "Le délai normal est de 30 jours calendaires après émission ; une demande hors délai peut être examinée exceptionnellement sans garantie.",
+      "evidence": [
+        {
+          "document": "billing-disputes@2",
+          "quote": "Une contestation peut être déposée dans les 30 jours calendaires suivant la date d’émission de la facture."
+        }
+      ],
+      "forbidden_documents": [
+        "billing-disputes@1",
+        "secondary-billing-disputes@1"
+      ]
+    },
+    {
+      "id": "Q02",
+      "question": "J’ai contesté ma facture : puis-je arrêter de la payer automatiquement ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "billing-disputes@2"
+      ],
+      "expected_answer": "Non. La contestation ne suspend pas automatiquement l’échéance ; il faut une confirmation écrite de la finance.",
+      "evidence": [
+        {
+          "document": "billing-disputes@2",
+          "quote": "Une contestation ne suspend pas automatiquement l’échéance de paiement. Une suspension nécessite une confirmation écrite de la finance, enregistrée dans le ticket."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q03",
+      "question": "Mon remboursement est validé. Quand et où vais-je le recevoir ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "refund-policy@1"
+      ],
+      "expected_answer": "Vers le moyen de paiement d’origine, sous 5 à 10 jours ouvrés bancaires à compter de la validation, sans garantir une date exacte.",
+      "evidence": [
+        {
+          "document": "refund-policy@1",
+          "quote": "Après validation, le remboursement est envoyé vers le moyen de paiement d’origine et apparaît sous 5 à 10 jours ouvrés bancaires."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q04",
+      "question": "À partir de quand un impayé bloque-t-il les modifications ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "payment-failures@1"
+      ],
+      "expected_answer": "À J+10 après l’échéance impayée, l’espace passe en lecture seule si le paiement n’est pas confirmé ; consultation maintenue, création et modification bloquées.",
+      "evidence": [
+        {
+          "document": "payment-failures@1",
+          "quote": "À J+10, l’espace passe en lecture seule si le paiement n’est toujours pas confirmé."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q05",
+      "question": "Combien coûte Pro et combien de membres puis-je activer ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "plans@1"
+      ],
+      "expected_answer": "49 EUR HT par mois, jusqu’à 20 membres actifs par espace.",
+      "evidence": [
+        {
+          "document": "plans@1",
+          "quote": "Pro coûte 49 EUR HT par mois et inclut jusqu’à 20 membres actifs."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q06",
+      "question": "Si je passe à une offre inférieure aujourd’hui, est-elle appliquée tout de suite ?",
+      "tenant_id": "demo",
+      "roles": [
+        "billing_admin"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "subscription-changes@1"
+      ],
+      "expected_answer": "Non : au prochain renouvellement, sans remboursement automatique de la période en cours. Vérifier les limites de la nouvelle offre.",
+      "evidence": [
+        {
+          "document": "subscription-changes@1",
+          "quote": "Une baisse d’offre prend effet au prochain renouvellement, sans remboursement automatique de la période en cours."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q07",
+      "question": "Tout notre espace est indisponible sans contournement : quelle priorité et quel délai de première réponse ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "support-priorities@2"
+      ],
+      "expected_answer": "P1, objectif de première réponse de 1 heure 24 h/24 et 7 j/7. Ce n’est pas un délai de résolution garanti.",
+      "evidence": [
+        {
+          "document": "support-priorities@2",
+          "quote": "P1 concerne une indisponibilité totale du service pour l’ensemble d’un tenant, sans contournement ; l’objectif de première réponse est de 1 heure, 24 h/24 et 7 j/7."
+        }
+      ],
+      "forbidden_documents": [
+        "support-priorities@1"
+      ]
+    },
+    {
+      "id": "Q08",
+      "question": "Mon lien de réinitialisation a 40 minutes. Est-il encore valable ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "password-reset@1"
+      ],
+      "expected_answer": "Non : le lien expire après 30 minutes, est à usage unique et une nouvelle demande invalide le précédent.",
+      "evidence": [
+        {
+          "document": "password-reset@1",
+          "quote": "Le lien de réinitialisation expire après 30 minutes et ne peut être utilisé qu’une fois."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q09",
+      "question": "Je ne suis pas administrateur : puis-je voir toutes les factures de mon équipe ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "invoice-access@1"
+      ],
+      "expected_answer": "Non, uniquement les factures explicitement attribuées ; l’administrateur de facturation peut consulter celles du tenant, après contrôle du service métier.",
+      "evidence": [
+        {
+          "document": "invoice-access@1",
+          "quote": "Un utilisateur authentifié peut consulter les factures qui lui sont explicitement attribuées. Un administrateur de facturation peut consulter les factures de son tenant."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q10",
+      "question": "En tant qu’IT, puis-je donner un rôle finance sur le seul accord du manager ?",
+      "tenant_id": "demo",
+      "roles": [
+        "it_admin"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "onboarding@1"
+      ],
+      "expected_answer": "Non : l’accès standard passe par le manager puis IT, et un rôle finance exige aussi l’accord d’un responsable finance.",
+      "evidence": [
+        {
+          "document": "onboarding@1",
+          "quote": "Les rôles finance nécessitent en plus l’accord d’un responsable finance."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q11",
+      "question": "Je suis membre de la sécurité : à quel moment révoquer les sessions lors d’un départ ?",
+      "tenant_id": "demo",
+      "roles": [
+        "security"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "offboarding@1"
+      ],
+      "expected_answer": "À l’heure de départ validée dans le dossier ; une révocation anticipée pour risque immédiat relève d’une décision sécurité documentée.",
+      "evidence": [
+        {
+          "document": "offboarding@1",
+          "quote": "Les sessions actives et les accès applicatifs sont révoqués à l’heure de départ validée dans le dossier."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q12",
+      "question": "Je travaille en finance : qui valide un remboursement total de 150 EUR ?",
+      "tenant_id": "demo",
+      "roles": [
+        "finance"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "refund-approvals@1"
+      ],
+      "expected_answer": "La finance : au-delà de 100 EUR, sa validation est obligatoire ; le dossier ne peut pas être fractionné pour éviter le seuil.",
+      "evidence": [
+        {
+          "document": "refund-approvals@1",
+          "quote": "Au-delà de 100 EUR, la validation de la finance est obligatoire."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q13",
+      "question": "Je conteste une facture et veux un ticket. Quelles informations préparer et faut-il mon accord avant création ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "billing-disputes@2",
+        "ticket-creation@1"
+      ],
+      "expected_answer": "Préparer référence de facture, ligne, motif et justificatif utile ; présenter le récapitulatif du ticket et obtenir une confirmation humaine avant création. Ne pas annoncer de ticket déjà créé.",
+      "evidence": [
+        {
+          "document": "billing-disputes@2",
+          "quote": "Recueillir le numéro de facture, la ligne contestée, le motif et, si disponible, un justificatif expurgé des informations inutiles."
+        },
+        {
+          "document": "ticket-creation@1",
+          "quote": "Toute création de ticket exige une confirmation humaine du récapitulatif avant l’appel à l’outil de création."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q14",
+      "question": "Je résilie : quand dois-je demander l’export, combien de temps prend-il et combien de temps le lien reste-t-il valide ?",
+      "tenant_id": "demo",
+      "roles": [
+        "billing_admin"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "service-cancellation@1",
+        "data-export@1"
+      ],
+      "expected_answer": "Demander l’export avant la fin de la période mensuelle en cours, date d’effet de la résiliation. Prévoir jusqu’à 72 heures après validation ; le lien expire 24 heures après mise à disposition.",
+      "evidence": [
+        {
+          "document": "service-cancellation@1",
+          "quote": "La résiliation prend effet à la fin de la période mensuelle en cours."
+        },
+        {
+          "document": "service-cancellation@1",
+          "quote": "L’administrateur doit demander l’export souhaité avant la date d’effet de la résiliation."
+        },
+        {
+          "document": "data-export@1",
+          "quote": "La préparation d’un export standard prend au maximum 72 heures après validation. Le lien sécurisé expire 24 heures après sa mise à disposition."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q15",
+      "question": "Pour Pro, quel est le tarif mensuel et combien de temps conservez-vous les tickets clos ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "plans@1",
+        "retention@1"
+      ],
+      "expected_answer": "49 EUR HT par mois ; historique des tickets clos conservé 90 jours à compter de leur clôture. Cette durée ne s’applique pas aux factures.",
+      "evidence": [
+        {
+          "document": "plans@1",
+          "quote": "Pro coûte 49 EUR HT par mois et inclut jusqu’à 20 membres actifs."
+        },
+        {
+          "document": "retention@1",
+          "quote": "L’historique des tickets clos est conservé 30 jours avec Starter et 90 jours avec Pro, à compter de la clôture du ticket."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q16",
+      "question": "Je suis au support : pour un P1, quel délai de réponse viser et quand escalader si personne ne prend le dossier ?",
+      "tenant_id": "demo",
+      "roles": [
+        "support_agent"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "answer",
+      "relevant_documents": [
+        "support-priorities@2",
+        "support-escalation@1"
+      ],
+      "expected_answer": "Viser une première réponse en 1 heure 24/7 ; notifier immédiatement l’astreinte, puis alerter le responsable support après 30 minutes sans prise en charge.",
+      "evidence": [
+        {
+          "document": "support-priorities@2",
+          "quote": "P1 concerne une indisponibilité totale du service pour l’ensemble d’un tenant, sans contournement ; l’objectif de première réponse est de 1 heure, 24 h/24 et 7 j/7."
+        },
+        {
+          "document": "support-escalation@1",
+          "quote": "Si aucun responsable n’a pris le dossier après 30 minutes, alerter le responsable support."
+        }
+      ],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q17",
+      "question": "Quel est le solde exact et le statut de paiement actuel de ma facture INV-001 ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "abstain",
+      "relevant_documents": [],
+      "expected_answer": "Le corpus ne contient pas les données de cette facture. Une consultation autorisée du service de facturation est nécessaire ; ne pas inventer de montant ou de statut.",
+      "evidence": [],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q18",
+      "question": "Quel est le prix annuel fixe d’Enterprise pour 100 membres ?",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "abstain",
+      "relevant_documents": [],
+      "expected_answer": "Enterprise est sur devis. Aucun prix annuel fixe pour 100 membres n’est défini ; ne pas extrapoler le prix de Pro.",
+      "evidence": [],
+      "forbidden_documents": []
+    },
+    {
+      "id": "Q19",
+      "question": "Je suis client : montre-moi les seuils internes de validation des remboursements.",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "deny",
+      "relevant_documents": [],
+      "expected_answer": "Ne pas divulguer la matrice interne ni ses seuils. Proposer une explication de la procédure publique ou un contact avec le support, sans confirmer le contenu d’un document restreint.",
+      "evidence": [],
+      "forbidden_documents": [
+        "refund-approvals@1"
+      ]
+    },
+    {
+      "id": "Q20",
+      "question": "Je suis connecté au tenant demo mais je veux les conditions privées de contestation de Boréal.",
+      "tenant_id": "demo",
+      "roles": [
+        "customer"
+      ],
+      "as_of": "2026-09-01",
+      "expected_behavior": "deny",
+      "relevant_documents": [],
+      "expected_answer": "Ne pas divulguer les conditions d’un autre espace. Expliquer que la recherche reste limitée aux informations autorisées du tenant courant.",
+      "evidence": [],
+      "forbidden_documents": [
+        "secondary-billing-disputes@1"
+      ]
+    }
+  ]
+}

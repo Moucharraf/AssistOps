@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Validations · AssistOps</title>
+    <link rel="stylesheet" href="/review/assets/style.css" />
+    <script src="/review/assets/app.js" defer></script>
+  </head>
+  <body>
+    <aside class="sidebar">
+      <a class="brand" href="/review"
+        ><span class="brand-icon" aria-hidden="true">A</span> AssistOps</a
+      >
+      <p class="eyebrow sidebar-label">ESPACE OPÉRATIONS</p>
+      <div class="nav-item">
+        <span aria-hidden="true">✓</span> Validations humaines
+      </div>
+      <div class="sidebar-note">
+        <span class="status-dot"></span> Vous gardez la décision
+        <p>Les agents proposent.<br />Une personne autorisée valide.</p>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <span>Opérations <span class="divider">/</span> Validations</span>
+        <div id="account" hidden>
+          <span id="identity"></span
+          ><button id="logout" class="quiet">Déconnexion</button>
+        </div>
+      </header>
+      <div id="notice" role="status" aria-live="polite" hidden></div>
+      <section id="login-view" class="login-view" hidden>
+        <div class="login-intro">
+          <p class="eyebrow">VALIDATION HUMAINE</p>
+          <h1>La bonne action.<br />Avec votre accord.</h1>
+          <p>
+            Consultez les propositions des agents, vérifiez leur destination et
+            suivez leur exécution.
+          </p>
+          <div class="steps">
+            <span>01 · Vérifier</span><span>02 · Décider</span
+            ><span>03 · Suivre</span>
+          </div>
+        </div>
+        <form id="login-form" class="login-card">
+          <h2>Connexion</h2>
+          <p>Accès réservé aux personnes chargées des validations.</p>
+          <label for="username">Identifiant</label>
+          <input
+            id="username"
+            name="username"
+            autocomplete="username"
+            required
+            maxlength="64"
+            spellcheck="false"
+            autocapitalize="none"
+          />
+          <label for="password">Mot de passe</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            maxlength="256"
+          />
+          <button class="primary" type="submit">
+            Se connecter <span aria-hidden="true">→</span>
+          </button>
+          <p class="small">Votre compte est créé par un administrateur.</p>
+        </form>
+      </section>
+      <section id="workspace" hidden>
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">CONTRÔLE DES ACTIONS</p>
+            <h1>Validations</h1>
+            <p>Vérifiez chaque proposition avant son exécution.</p>
+          </div>
+          <button id="refresh" class="secondary">Actualiser</button>
+        </div>
+        <div class="review-layout">
+          <section class="inbox" aria-label="Liste des propositions">
+            <div class="inbox-heading">
+              <h2>Propositions</h2>
+              <label class="sr-only" for="filter"
+                >Filtrer les propositions</label
+              >
+              <select id="filter">
+                <option value="pending">À valider</option>
+                <option value="all">Tout l’historique</option>
+              </select>
+            </div>
+            <div id="proposal-list" aria-live="polite"></div>
+            <div class="pagination">
+              <button id="previous" class="quiet">← Précédent</button
+              ><span id="page-number"></span
+              ><button id="next" class="quiet">Suivant →</button>
+            </div>
+          </section>
+          <section class="detail-panel" aria-label="Détail de la proposition">
+            <div id="empty-detail" class="empty-state">
+              <span class="empty-icon" aria-hidden="true">✓</span>
+              <h2>Un regard humain, avant d’agir.</h2>
+              <p>
+                Sélectionnez une proposition pour vérifier son contenu et sa
+                destination.
+              </p>
+            </div>
+            <article id="proposal-detail" hidden>
+              <div class="detail-top">
+                <span class="eyebrow">CRÉATION DE TICKET</span
+                ><span id="detail-status" class="badge"></span>
+              </div>
+              <h2 id="subject"></h2>
+              <p id="proposal-meta" class="small"></p>
+              <div id="destination" class="destination"></div>
+              <dl class="record-info">
+                <div>
+                  <dt>Demandeur</dt>
+                  <dd id="requester"></dd>
+                </div>
+                <div>
+                  <dt>Client</dt>
+                  <dd id="customer"></dd>
+                </div>
+                <div>
+                  <dt>Facture</dt>
+                  <dd id="invoice"></dd>
+                </div>
+              </dl>
+              <section
+                class="review-context"
+                aria-label="Contexte de la demande"
+              >
+                <h3>Éléments pour votre décision</h3>
+                <details id="request-context">
+                  <summary>Demande initiale</summary>
+                  <p id="request-message" class="context-text"></p>
+                </details>
+                <div
+                  id="invoice-evidence"
+                  class="invoice-evidence"
+                  hidden
+                ></div>
+                <details id="document-context" hidden>
+                  <summary>Réponse documentaire et sources</summary>
+                  <p class="small">
+                    Informations retrouvées dans les documents ; elles ne
+                    constituent pas une décision sur la réclamation.
+                  </p>
+                  <p id="document-answer" class="context-text"></p>
+                  <ol id="document-sources" class="document-sources"></ol>
+                </details>
+                <p id="no-document-context" class="small">
+                  Aucune recherche documentaire enregistrée pour cette
+                  proposition.
+                </p>
+              </section>
+              <h3>Contenu du ticket proposé</h3>
+              <p id="description" class="ticket-description"></p>
+              <p class="data-note">
+                Données métier synthétiques : les clients et factures de cet
+                environnement sont fictifs.
+              </p>
+              <div id="delivery" class="delivery" role="status"></div>
+              <a
+                id="ticket-link"
+                class="ticket-link"
+                target="_blank"
+                rel="noopener noreferrer"
+                hidden
+                >Ouvrir le ticket Jira ↗</a
+              >
+              <p id="decision-meta" class="small"></p>
+              <div id="decision-actions" class="decision-actions">
+                <button id="reject" class="secondary">Refuser</button
+                ><button id="approve" class="primary">Approuver…</button>
+              </div>
+              <p id="decision-help" class="small"></p>
+              <details>
+                <summary>Référence de validation</summary>
+                <dl class="technical">
+                  <dt>Proposition</dt>
+                  <dd id="proposal-id"></dd>
+                  <dt>Empreinte du contenu</dt>
+                  <dd id="proposal-hash"></dd>
+                </dl>
+              </details>
+            </article>
+          </section>
+        </div>
+      </section>
+      <p id="loading" class="initial-loading">
+        Chargement de l’espace de validation…
+      </p>
+    </main>
+    <dialog id="confirm-dialog" aria-labelledby="confirm-title">
+      <form method="dialog">
+        <h2 id="confirm-title"></h2>
+        <p id="confirm-text"></p>
+        <p id="confirm-subject" class="confirmation-subject"></p>
+        <div class="decision-actions">
+          <button id="cancel-decision" class="secondary" value="cancel">
+            Annuler</button
+          ><button id="confirm-decision" class="primary" type="button">
+            Confirmer
+          </button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

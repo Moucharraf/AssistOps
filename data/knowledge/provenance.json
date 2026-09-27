@@ -1,0 +1,19 @@
+{
+  "corpus_id": "asterdesk-fr-v1",
+  "origin": "synthetic",
+  "created_on": "2026-09-24",
+  "evaluation_snapshot": "2026-09-01",
+  "authorship": "AI-assisted original authoring for the AssistOps fictional scenario",
+  "fictional_entities": ["Asteria Cloud", "AsterDesk", "Boréal Services"],
+  "external_content_included": false,
+  "external_sources": [],
+  "contains_real_customer_records": false,
+  "reason": "Provide coherent operational procedures, explicit access scopes and reproducible evaluation without real internal documents or personal data.",
+  "review_status": "Automated structural checks implemented; human domain review pending",
+  "limitations": [
+    "Not real company policies, legal guidance or contractual commitments",
+    "No live invoice amounts, account records or incident status",
+    "Questions and answers were authored with the corpus and are not a blind holdout",
+    "Synthetic corpus performance does not establish production performance"
+  ]
+}
