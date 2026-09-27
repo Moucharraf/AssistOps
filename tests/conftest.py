@@ -29,6 +29,19 @@ def client(app):
 
 
 @pytest.fixture
+def review_db(database):
+    from test_business import enable
+    from test_review_ui import PASSWORD
+
+    from assistops.review.auth import provision
+
+    enable(database)
+    database.review_ui_enabled = True
+    provision(database, "reviewer", "demo", "reviewer-001", ["demo"], PASSWORD)
+    return database
+
+
+@pytest.fixture
 def database():
     from test_events import SECRET
 

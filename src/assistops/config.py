@@ -46,6 +46,9 @@ class Settings(BaseSettings):
         str, dict[str, frozenset[Literal["customer", "support_agent", "ticket_approver"]]]
     ] = Field(default_factory=dict)
     approval_ttl_seconds: int = Field(default=900, ge=60, le=86400)
+    review_ui_enabled: bool = False
+    review_ui_origin: str = "http://localhost:8000"
+    review_session_seconds: int = Field(default=3600, ge=300, le=28800)
     ticket_backend: Literal["synthetic", "jira"] = "synthetic"
     jira_site: str = Field(default="", pattern=r"^(|https://[a-z0-9-]+\.atlassian\.net)$")
     jira_project_key: str = Field(default="", pattern=r"^[A-Z][A-Z0-9_]*$|^$")
@@ -78,6 +81,19 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_worker(self):
+        origin = urlsplit(self.review_ui_origin)
+        if (
+            origin.scheme not in {"http", "https"}
+            or not origin.hostname
+            or origin.username
+            or origin.password
+            or origin.path
+            or origin.query
+            or origin.fragment
+        ):
+            raise ValueError("Review UI origin must be an HTTP(S) origin without a path")
+        if self.review_ui_enabled and self.environment == "production" and origin.scheme != "https":
+            raise ValueError("Production review UI requires HTTPS")
         endpoint = urlsplit(self.langsmith_endpoint)
         if (
             endpoint.scheme not in {"http", "https"}

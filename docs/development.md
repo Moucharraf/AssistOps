@@ -499,8 +499,10 @@ L'approbateur consulte `POST /v1/approvals/status` avec un corps signé contenan
 `decision` accepte `approved` ou `rejected`. Le connecteur et la source doivent
 être ceux de la demande initiale. La signature atteste l'identité transmise par le
 connecteur ; ce dernier doit authentifier la personne qui prend la décision.
-Les identifiants publics du Compose servent uniquement aux tests locaux. Il n'y
-a pas encore d'interface utilisateur ou de bouton Slack pour cette validation.
+Les identifiants publics du Compose servent uniquement aux tests locaux.
+L'[interface web de validation](review-ui.md) permet maintenant de se connecter
+avec un compte nominatif, consulter les propositions et prendre une décision.
+Les boutons Slack restent à implémenter.
 
 La validité est de 15 minutes par défaut (`ASSISTOPS_APPROVAL_TTL_SECONDS`). Une
 proposition périmée devient `expired` lors de sa consultation ou d'une tentative

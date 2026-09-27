@@ -66,6 +66,9 @@ def test_redirect_does_not_forward_api_key():
         def send(self, request, **kwargs):
             calls.append(request.url)
             response = requests.Response()
+            # Match a real adapter: requests inspects the original request even without redirects.
+            response.request = request
+            response.url = request.url
             response.status_code, response._content = 302, b""
             response.headers["Location"] = "https://untrusted.invalid/runs"
             return response

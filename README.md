@@ -58,7 +58,7 @@ traitement, tandis que Qdrant sert à la recherche documentaire.
 | Connaissances | Corpus synthétique réaliste, provenance et questions de référence | Disponible |
 | Recherche | Ingestion OpenAI, recherche Qdrant filtrée et passages sourcés | Implémenté en CLI |
 | Actions | Tools Agent : utilisateur, facture, proposition de ticket | Implémenté, services simulés |
-| Approbations | Décision signée, expiration, audit et création idempotente | Implémenté, tickets simulés |
+| Approbations | Interface web authentifiée, décision sur contenu exact, expiration et audit | Implémenté, simulation ou Jira Cloud |
 | Mémoire | Contexte privé entre messages et redémarrages | Implémenté, historique borné |
 | Intégrations | Webhooks n8n authentifiés, signature et suivi du résultat | Implémenté, environnement local |
 | Connecteurs externes | Slack, e-mail et API CRM/facturation réelles | Prévu |
@@ -126,6 +126,10 @@ docker compose down
 Le [guide de développement](docs/development.md) détaille l’installation Python,
 la configuration, l’envoi d’un webhook signé et l’exécution des tests.
 
+L’[interface de validation](docs/review-ui.md) est accessible sur
+[localhost:8000/review](http://localhost:8000/review). Un administrateur doit créer
+un compte avant la première connexion ; aucun mot de passe par défaut n’est fourni.
+
 ## Qualité et sécurité
 
 Les tests couvrent l’authentification des webhooks, les entrées invalides,
@@ -159,6 +163,7 @@ fausser l'évaluation. Voir le [guide du corpus](docs/synthetic-corpus.md).
 
 ## Documentation
 
+- [Interface de validation : comptes, décisions et suivi Jira](docs/review-ui.md)
 - [RAG Agent : réponses sourcées, configuration et limites](docs/rag-agent.md)
 - [Recherche documentaire : fonctionnement, coût et commandes](docs/retrieval.md)
 - [Guide de développement et de vérification](docs/development.md)

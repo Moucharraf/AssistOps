@@ -15,6 +15,7 @@ from assistops.events import EventError, router
 from assistops.health import dependency_status
 from assistops.observability import configure_logging
 from assistops.rate_limits import ConnectorRateLimiter
+from assistops.review.api import router as review_router
 from assistops.storage import EventStore
 
 logger = structlog.get_logger()
@@ -45,6 +46,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.rate_limiter = ConnectorRateLimiter(settings)
     app.include_router(router)
     app.include_router(approvals_router)
+    if settings.review_ui_enabled:
+        app.include_router(review_router)
 
     def error(request: Request, status: int, code: str) -> JSONResponse:
         return JSONResponse(
@@ -66,6 +69,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 logger.error("request_failed", error_type=type(exc).__name__)
                 response = error(request, 500, "internal_error")
             response.headers["X-Correlation-ID"] = correlation_id
+            if request.url.path == "/review" or request.url.path.startswith("/review/"):
+                response.headers.update(
+                    {
+                        "Cache-Control": "no-store",
+                        "X-Content-Type-Options": "nosniff",
+                        "Referrer-Policy": "no-referrer",
+                        "X-Frame-Options": "DENY",
+                        "Content-Security-Policy": (
+                            "default-src 'none'; script-src 'self'; style-src 'self'; "
+                            "connect-src 'self'; img-src 'self'; base-uri 'none'; "
+                            "frame-ancestors 'none'; form-action 'self'"
+                        ),
+                    }
+                )
             route = request.scope.get("route")
             logger.info(
                 "request_completed",
