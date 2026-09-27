@@ -8,9 +8,11 @@ import httpx
 import psycopg
 import pytest
 from psycopg.types.json import Jsonb
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 from slack_sdk import WebClient
 from test_business import enable
+from test_jira import configure as configure_jira
+from test_jira import factory as jira_factory
 
 from assistops.approvals import ApprovalDecision
 from assistops.business import BusinessTools
@@ -25,6 +27,7 @@ from assistops.slack.messages import render
 from assistops.slack.transport import SlackAPI, SlackError
 from assistops.storage import connect
 from assistops.supervisor import RoutePlan, SupervisorProcessor
+from assistops.ticket_delivery import deliver_once as deliver_ticket
 from assistops.worker import run_once
 
 PAYLOAD = {
@@ -288,7 +291,12 @@ def test_rate_limit_backoff_and_identity_revocation(slack_db, slack):
 
 
 @pytest.mark.integration
-def test_slack_request_worker_approval_and_thread_update(slack_db, slack):
+@pytest.mark.parametrize("outcome", ["synthetic", "jira", "rejected", "timeout", "unavailable"])
+def test_slack_request_worker_approval_and_thread_update(slack_db, slack, outcome):
+    # Routing is mocked, but the supervisor still requires explicit configuration.
+    slack_db.openai_api_key = SecretStr("test-only-openai-key")
+    if outcome != "synthetic":
+        configure_jira(slack_db)
     receipt = accept(PAYLOAD, slack, slack_db, "UBOT")
     processor = SupervisorProcessor(slack_db)
     processor.router.route = AsyncMock(
@@ -306,7 +314,24 @@ def test_slack_request_worker_approval_and_thread_update(slack_db, slack):
         )
     )
     assert asyncio.run(run_once(JobStore(slack_db), processor))
+    # Slack retries carry the same event ID, even after the worker has processed it.
+    assert accept(PAYLOAD, slack, slack_db, "UBOT").duplicate
+    assert not asyncio.run(run_once(JobStore(slack_db), processor))
+    processor.router.route.assert_awaited_once()
     calls = []
+    jira_calls = []
+
+    def jira_handler(request):
+        jira_calls.append(request)
+        if outcome == "timeout":
+            raise httpx.ReadTimeout("private transport details", request=request)
+        if outcome == "unavailable":
+            return httpx.Response(503, text="private server details")
+        return httpx.Response(201, json={"key": "OPS-42"})
+
+    ticket_client = jira_factory(jira_handler)
+    assert not deliver_ticket(slack_db, ticket_client)
+    assert not jira_calls
 
     def handle(request):
         body = json.loads(request.content)
@@ -322,21 +347,69 @@ def test_slack_request_worker_approval_and_thread_update(slack_db, slack):
             proposal = connection.execute(
                 "SELECT result FROM event_jobs WHERE event_id = %s", (receipt.receipt_id,)
             ).fetchone()[0]["proposal"]
+        choice = "rejected" if outcome == "rejected" else "approved"
         review = ApprovalDecision(
             tenant_id="demo",
             user_id="reviewer-001",
             source="slack",
             proposal_id=proposal["id"],
             arguments_hash=proposal["arguments_hash"],
-            decision="approved",
+            decision=choice,
         )
-        BusinessTools(slack_db).review(review, "slack-demo", "slack-test", "approved")
+        business = BusinessTools(slack_db)
+        business.review(review, "slack-demo", "slack-test", choice)
+        business.review(review, "slack-demo", "slack-test-replay", choice)
+        if outcome in {"jira", "timeout", "unavailable"}:
+            assert deliver_ticket(slack_db, ticket_client)
+            assert len(jira_calls) == 1
+        assert not deliver_ticket(slack_db, ticket_client)
+        if outcome in {"synthetic", "rejected"}:
+            assert not jira_calls
         with connect(slack_db) as connection:
+            status, result = connection.execute(
+                "SELECT status, result FROM event_jobs WHERE event_id = %s", (receipt.receipt_id,)
+            ).fetchone()
+            expected = {
+                "synthetic": "ticket_created",
+                "jira": "ticket_created",
+                "rejected": "rejected",
+                "timeout": "ticket_uncertain",
+                "unavailable": "ticket_uncertain",
+            }[outcome]
+            assert result["outcome"] == expected
+            assert status == (
+                "delivery_uncertain" if outcome in {"timeout", "unavailable"} else "completed"
+            )
+            assert connection.execute("SELECT count(*) FROM ticket_proposals").fetchone()[0] == 1
             connection.execute("UPDATE slack_replies SET next_run_at = now() - interval '1 second'")
         assert deliver_once(slack_db, slack, client)
         assert calls[1][0] == "/api/chat.update"
         assert calls[1][1]["ts"] == "1790000002.000001"
         assert "thread_ts" not in calls[1][1]
+        text = calls[1][1]["blocks"][0]["text"]["text"].lower()
+        if outcome == "rejected":
+            assert "refus" in text
+        elif outcome in {"timeout", "unavailable"}:
+            assert "incertain" in text
+            assert "private" not in json.dumps(calls[1][1])
+        elif outcome == "jira":
+            assert "https://example.atlassian.net/browse/OPS-42" in json.dumps(calls[1][1])
         assert not deliver_once(slack_db, slack, client)
     finally:
         client.close()
+
+
+@pytest.mark.integration
+def test_unauthorized_slack_member_is_acknowledged_without_persisting_work(slack_db, slack):
+    payload = copy.deepcopy(PAYLOAD)
+    payload["event"]["user"] = "UUNKNOWN"
+    socket = Mock()
+    request = SimpleNamespace(type="events_api", payload=payload, envelope_id="unauthorized")
+    listener(slack_db, slack, "UBOT")(socket, request)
+    socket.send_socket_mode_response.assert_called_once()
+    with connect(slack_db) as connection:
+        for table in ("inbound_events", "event_jobs", "slack_replies", "ticket_deliveries"):
+            assert connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0] == 0
+    client = Mock()
+    assert not deliver_once(slack_db, slack, client)
+    client.send.assert_not_called()

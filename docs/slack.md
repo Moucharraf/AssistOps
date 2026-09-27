@@ -164,8 +164,29 @@ Ne pas recréer la demande métier pour réparer seulement une notification.
 
 Les tests `tests/test_slack.py` couvrent l’isolation, les injections d’identité,
 l’accusé après persistance, le rollback, les doublons, les erreurs réseau, les retries
-bornés et le parcours proposition → approbation simulée → mise à jour du même message.
-Le réseau Slack est simulé dans les tests ; aucune clé externe n’est nécessaire en CI.
+bornés et le parcours proposition → décision → résultat Jira → mise à jour du même message.
+Les scénarios de bout en bout vérifient les garanties suivantes :
+
+| Situation | Résultat attendu |
+| --- | --- |
+| Même événement Slack livré plusieurs fois | Un seul traitement et une seule proposition. |
+| Même approbation soumise plusieurs fois | Un seul envoi à Jira. |
+| Proposition refusée | Aucun envoi à Jira ; le message Slack indique le refus. |
+| Membre Slack non autorisé | Événement ignoré et acquitté, sans job ni réponse. |
+| Timeout ou réponse HTTP 503 de Jira après envoi | Résultat incertain affiché dans Slack ; aucune répétition automatique de la création. |
+
+Un résultat incertain ne prouve pas que Jira n’a rien créé : un opérateur doit vérifier
+avant toute reprise. L’idempotence porte sur l’identifiant d’événement Slack ; deux
+messages envoyés séparément constituent deux demandes, même si leur texte est identique.
+
+Le modèle, Slack et Jira sont simulés dans ces parcours. PostgreSQL est réel, avec un
+schéma isolé par test ; aucune clé externe ni création de ticket réel n’est nécessaire.
+La CI les exécute dans son étape d’intégration PostgreSQL. Pour les relancer localement,
+configurer `ASSISTOPS_TEST_DATABASE_URL`, puis exécuter :
+
+```shell
+python -m pytest tests/test_slack.py tests/test_jira.py -q
+```
 
 Références : [Socket Mode](https://docs.slack.dev/apis/events-api/using-socket-mode/),
 [manifestes Slack](https://docs.slack.dev/reference/app-manifest/),
